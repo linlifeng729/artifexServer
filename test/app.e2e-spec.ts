@@ -16,10 +16,10 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('根路径应该重定向到首页 (https://linlifeng.top)', () => {
     return request(app.getHttpServer())
       .get('/')
-      .expect(200)
-      .expect('Hello World!');
+      .expect(302)
+      .expect('Location', 'https://linlifeng.top');
   });
 });
