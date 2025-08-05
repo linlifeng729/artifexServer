@@ -1,10 +1,10 @@
-import { IsString, IsOptional, MinLength, MaxLength, IsEnum, Matches } from 'class-validator';
+import { IsString, IsOptional, MinLength, MaxLength, Matches } from 'class-validator';
 
 /**
- * 创建用户的数据传输对象
- * 定义创建用户时需要的字段和验证规则
+ * 用户注册数据传输对象
+ * 用于普通用户自行注册，不包含角色设置
  */
-export class CreateUserDto {
+export class RegisterDto {
   @IsString({ message: '手机号必须是字符串' })
   @Matches(/^1[3-9]\d{9}$/, { message: '请输入正确的手机号格式' })
   phone: string;
@@ -18,8 +18,4 @@ export class CreateUserDto {
   @IsString({ message: '昵称必须是字符串' })
   @MaxLength(50, { message: '昵称长度不能超过50位' })
   nickname?: string;
-
-  @IsOptional()
-  @IsEnum(['user', 'admin'], { message: '角色必须是 user 或 admin' })
-  role?: 'user' | 'admin';
 }

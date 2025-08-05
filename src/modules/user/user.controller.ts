@@ -10,8 +10,8 @@ import {
   ParseIntPipe, 
   HttpCode, 
 } from '@nestjs/common';
-import { UserService } from './user.service';
-import { CreateUserDto, UpdateUserDto } from './dto';
+import { UserService } from '@/modules/user/user.service';
+import { CreateUserDto, UpdateUserDto } from '@/modules/user/dto';
 
 /**
  * 用户控制器
@@ -25,7 +25,6 @@ export class UserController {
    * 获取所有用户（分页）
    */
   @Get()
-  @HttpCode(200)
   async findAll(
     @Query('page', ParseIntPipe) page: number = 1,
     @Query('limit', ParseIntPipe) limit: number = 10,
@@ -42,7 +41,6 @@ export class UserController {
    * 根据ID获取用户信息
    */
   @Get(':id')
-  @HttpCode(200)
   async findById(@Param('id', ParseIntPipe) id: number) {
     const user = await this.userService.findById(id);
     return {
@@ -53,15 +51,14 @@ export class UserController {
   }
 
   /**
-   * 创建新用户
+   * 创建管理员
    */
-  @Post()
-  @HttpCode(201)
-  async create(@Body() createUserDto: CreateUserDto) {
+  @Post('admins')
+  async createAdmin(@Body() createUserDto: CreateUserDto) {
     const user = await this.userService.create(createUserDto);
     return {
       success: true,
-      message: '创建用户成功',
+      message: '创建管理员成功',
       data: { user },
     };
   }
@@ -70,7 +67,6 @@ export class UserController {
    * 更新用户信息
    */
   @Put(':id')
-  @HttpCode(200)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
@@ -87,7 +83,7 @@ export class UserController {
    * 删除用户（软删除）
    */
   @Delete(':id')
-  @HttpCode(200)
+  @HttpCode(204)
   async remove(@Param('id', ParseIntPipe) id: number) {
     const success = await this.userService.softDelete(id);
     return {

@@ -10,6 +10,10 @@
     "sourceMap": false,
     "outDir": "./server",
     "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"],
+      "@": ["src"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,

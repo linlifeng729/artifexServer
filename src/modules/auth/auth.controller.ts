@@ -1,8 +1,8 @@
 import { Controller, Post, Body, HttpCode } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { Public } from './public.decorator';
-import { CreateUserDto } from '../user/dto';
+import { AuthService } from '@/modules/auth/auth.service';
+import { LoginDto } from '@/modules/auth/dto/login.dto';
+import { RegisterDto } from '@/modules/auth/dto/register.dto';
+import { Public } from '@/modules/auth/decorators/public.decorator';
 
 /**
  * 认证控制器
@@ -13,16 +13,6 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
-   * 用户注册
-   */
-  @Public()
-  @Post('register')
-  @HttpCode(201)
-  async register(@Body() createUserDto: CreateUserDto) {
-    return await this.authService.register(createUserDto);
-  }
-
-  /**
    * 用户登录
    */
   @Public()
@@ -30,5 +20,15 @@ export class AuthController {
   @HttpCode(200)
   async login(@Body() loginDto: LoginDto) {
     return await this.authService.login(loginDto);
+  }
+
+  /**
+   * 用户注册并自动登录
+   */
+  @Public()
+  @Post('register')
+  @HttpCode(201)
+  async register(@Body() registerDto: RegisterDto) {
+    return await this.authService.registerAndLogin(registerDto);
   }
 }

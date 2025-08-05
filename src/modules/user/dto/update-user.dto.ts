@@ -1,5 +1,5 @@
 import { PartialType, OmitType } from '@nestjs/mapped-types';
-import { CreateUserDto } from './create-user.dto';
+import { CreateUserDto } from '@/modules/user/dto/create-user.dto';
 
 /**
  * 更新用户的数据传输对象

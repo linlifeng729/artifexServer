@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { AuthController } from './auth.controller';
-import { AuthService } from './auth.service';
-import { JwtAuthGuard } from './jwt.guard';
-import { UserModule } from '../user/user.module';
+import { AuthController } from '@/modules/auth/auth.controller';
+import { AuthService } from '@/modules/auth/auth.service';
+import { JwtAuthGuard } from '@/modules/auth/guards/jwt.guard';
+import { UserModule } from '@/modules/user/user.module';
 
 /**
  * 认证模块

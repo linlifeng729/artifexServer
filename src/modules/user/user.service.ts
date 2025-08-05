@@ -1,8 +1,9 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
-import { CreateUserDto, UpdateUserDto } from './dto';
+import { User } from '@/modules/user/entities/user.entity';
+import { CreateUserDto, UpdateUserDto } from '@/modules/user/dto';
+import { RegisterDto } from '@/modules/auth/dto/register.dto';
 import * as bcrypt from 'bcrypt';
 
 /**
@@ -17,11 +18,11 @@ export class UserService {
   ) {}
 
   /**
-   * 根据用户名查找用户
+   * 根据手机号查找用户
    */
-  async findByUsername(username: string): Promise<User | null> {
+  async findByPhone(phone: string): Promise<User | null> {
     return await this.userRepository.findOne({ 
-      where: { username, isActive: true } 
+      where: { phone, isActive: true } 
     });
   }
 
@@ -31,29 +32,33 @@ export class UserService {
   async findById(id: number): Promise<Omit<User, 'password'> | null> {
     const user = await this.userRepository.findOne({
       where: { id, isActive: true },
-      select: ['id', 'username', 'email', 'nickname', 'isActive', 'createdAt', 'updatedAt']
+      select: ['id', 'phone', 'nickname', 'role', 'isActive', 'createdAt', 'updatedAt']
     });
     return user;
   }
 
   /**
-   * 创建新用户
+   * 创建用户的核心逻辑（私有方法）
    */
-  async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
-    // 检查用户名是否已存在
-    const existingUser = await this.findByUsername(createUserDto.username);
+  private async _createUser(
+    userData: { phone: string; password: string; nickname?: string },
+    role: 'user' | 'admin'
+  ): Promise<Omit<User, 'password'>> {
+    // 检查手机号是否已存在
+    const existingUser = await this.findByPhone(userData.phone);
     if (existingUser) {
-      throw new ConflictException('用户名已存在');
+      throw new ConflictException('手机号已存在');
     }
 
     // 密码加密
     const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(createUserDto.password, saltRounds);
+    const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
 
     // 创建用户
     const user = this.userRepository.create({
-      ...createUserDto,
+      ...userData,
       password: hashedPassword,
+      role,
     });
 
     const savedUser = await this.userRepository.save(user);
@@ -61,6 +66,20 @@ export class UserService {
     // 返回不包含密码的用户信息
     const { password, ...result } = savedUser;
     return result;
+  }
+
+  /**
+   * 创建管理员
+   */
+  async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password'>> {
+    return this._createUser(createUserDto, 'admin');
+  }
+
+  /**
+   * 用户注册（普通用户）
+   */
+  async register(registerDto: RegisterDto): Promise<Omit<User, 'password'>> {
+    return this._createUser(registerDto, 'user');
   }
 
   /**
@@ -102,7 +121,7 @@ export class UserService {
   }> {
     const [users, total] = await this.userRepository.findAndCount({
       where: { isActive: true },
-      select: ['id', 'username', 'email', 'nickname', 'isActive', 'createdAt', 'updatedAt'],
+      select: ['id', 'phone', 'nickname', 'role', 'isActive', 'createdAt', 'updatedAt'],
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: 'DESC' }

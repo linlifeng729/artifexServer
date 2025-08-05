@@ -5,8 +5,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AuthService } from './auth.service';
-import { IS_PUBLIC_KEY } from './public.decorator';
+import { AuthService } from '@/modules/auth/auth.service';
+import { IS_PUBLIC_KEY } from '@/modules/auth/decorators/public.decorator';
 
 /**
  * JWT 认证守卫

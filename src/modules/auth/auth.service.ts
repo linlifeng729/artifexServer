@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { LoginDto } from './dto/login.dto';
-import { UserService } from '../user/user.service';
-import { CreateUserDto } from '../user/dto';
+import { LoginDto } from '@/modules/auth/dto/login.dto';
+import { RegisterDto } from '@/modules/auth/dto/register.dto';
+import { UserService } from '@/modules/user/user.service';
 
 @Injectable()
 export class AuthService {
@@ -12,10 +12,10 @@ export class AuthService {
   ) {}
 
   async validateUser(loginDto: LoginDto) {
-    const { username, password } = loginDto;
+    const { phone, password } = loginDto;
     
     // 从数据库查找用户
-    const user = await this.userService.findByUsername(username);
+    const user = await this.userService.findByPhone(phone);
 
     if (user && await this.userService.validatePassword(user, password)) {
       const { password: _, ...result } = user;
@@ -31,13 +31,13 @@ export class AuthService {
     if (!user) {
       return {
         success: false,
-        message: '用户名或密码错误',
+        message: '手机号或密码错误',
         data: null
       };
     }
 
     // 生成JWT token
-    const payload = { sub: user.id, username: user.username };
+    const payload = { sub: user.id, phone: user.phone };
     const token = await this.jwtService.signAsync(payload);
 
     return {
@@ -50,14 +50,23 @@ export class AuthService {
     };
   }
 
-  // 用户注册
-  async register(createUserDto: CreateUserDto) {
+  // 用户注册后自动登录
+  async registerAndLogin(registerDto: RegisterDto) {
     try {
-      const user = await this.userService.create(createUserDto);
+      // 注册用户
+      const user = await this.userService.register(registerDto);
+      
+      // 自动登录，生成token
+      const payload = { sub: user.id, phone: user.phone };
+      const token = await this.jwtService.signAsync(payload);
+      
       return {
         success: true,
         message: '注册成功',
-        data: { user }
+        data: {
+          user,
+          token
+        }
       };
     } catch (error) {
       return {

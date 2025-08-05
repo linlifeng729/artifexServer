@@ -6,11 +6,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';             // TypeORM 数据�
 import { APP_GUARD } from '@nestjs/core';                    // 全局守卫注册令牌
 
 // 应用控制器和模块
-import { AppController } from './app.controller';            // 根控制器
-import { UserModule } from './modules/user/user.module';     // 用户管理模块
-import { AuthModule } from './modules/auth/auth.module';     // 认证模块
-import { JwtAuthGuard } from './modules/auth/jwt.guard';     // JWT 认证守卫
-import { User } from './modules/user/entities/user.entity';  // 用户实体
+import { AppController } from '@/app.controller';            // 根控制器
+import { UserModule } from '@/modules/user/user.module';     // 用户管理模块
+import { AuthModule } from '@/modules/auth/auth.module';     // 认证模块
+import { JwtAuthGuard } from '@/modules/auth/guards/jwt.guard';     // JWT 认证守卫
+import { User } from '@/modules/user/entities/user.entity';  // 用户实体
 
 /**
  * 应用根模块 (App Root Module)
