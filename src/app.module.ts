@@ -1,10 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
+
 import { AppController } from './app.controller';
-import { UserController } from './user/user.controller';
-import { AuthService } from './auth/auth.service';
-import { JwtAuthGuard } from './auth/jwt.guard';
+import { UserModule } from './modules/user/user.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { JwtAuthGuard } from './modules/auth/jwt.guard';
+import { User } from './modules/user/entities/user.entity';
 
 /**
  * 应用根模块
@@ -17,6 +21,21 @@ import { JwtAuthGuard } from './auth/jwt.guard';
       ignoreEnvFile: false,  // 不忽略 .env 文件
       envFilePath: ['.env'], // 指定环境变量文件路径
     }),
+    // TypeORM数据库配置
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'mysql',
+        host: configService.get<string>('DB_HOST', 'localhost'),
+        port: configService.get<number>('DB_PORT', 3306),
+        username: configService.get<string>('DB_USERNAME', 'root'),
+        password: configService.get<string>('DB_PASSWORD', ''),
+        database: configService.get<string>('DB_DATABASE', 'artifex'),
+        entities: [User],
+        synchronize: configService.get<boolean>('DB_SYNCHRONIZE', true), // 生产环境应设为 false
+        logging: configService.get<boolean>('DB_LOGGING', false),
+      }),
+    }),
     // JWT模块异步配置
     JwtModule.registerAsync({
       global: true,                    // 全局可用
@@ -26,10 +45,17 @@ import { JwtAuthGuard } from './auth/jwt.guard';
         signOptions: { expiresIn: '24h' },               // JWT令牌24小时后过期
       }),
     }),
+    // 功能模块
+    UserModule,
+    AuthModule,
   ],
-  // 控制器注册 - 处理HTTP请求和响应
-  controllers: [AppController, UserController],
-  // 服务提供者注册 - 业务逻辑和功能服务
-  providers: [AuthService, JwtAuthGuard],
+  controllers: [AppController],
+  providers: [
+    // 全局JWT守卫
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule { }

@@ -1,26 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { LoginDto } from '../dto/login.dto';
+import { LoginDto } from './dto/login.dto';
+import { UserService } from '../user/user.service';
+import { CreateUserDto } from '../user/dto';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly jwtService: JwtService) {}
-
-  // 模拟用户数据 - 在实际项目中应该从数据库获取
-  private readonly users = [
-    { id: 1, username: 'admin', password: 'admin123' },
-    { id: 2, username: 'user', password: 'user123' },
-  ];
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly userService: UserService,
+  ) {}
 
   async validateUser(loginDto: LoginDto) {
     const { username, password } = loginDto;
     
-    // 查找用户
-    const user = this.users.find(
-      (u) => u.username === username && u.password === password
-    );
+    // 从数据库查找用户
+    const user = await this.userService.findByUsername(username);
 
-    if (user) {
+    if (user && await this.userService.validatePassword(user, password)) {
       const { password: _, ...result } = user;
       return result;
     }
@@ -51,6 +48,24 @@ export class AuthService {
         token
       }
     };
+  }
+
+  // 用户注册
+  async register(createUserDto: CreateUserDto) {
+    try {
+      const user = await this.userService.create(createUserDto);
+      return {
+        success: true,
+        message: '注册成功',
+        data: { user }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || '注册失败',
+        data: null
+      };
+    }
   }
 
   // 验证JWT token
