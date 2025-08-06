@@ -16,6 +16,6 @@ export class RegisterDto {
 
   @IsOptional()
   @IsString({ message: '昵称必须是字符串' })
-  @MaxLength(50, { message: '昵称长度不能超过50位' })
+  @MaxLength(20, { message: '昵称长度不能超过20位' })
   nickname?: string;
 }

@@ -9,8 +9,11 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true, length: 11, comment: '手机号' })
+  @Column({ length: 255, comment: '加密的手机号' })
   phone: string;
+
+  @Column({ unique: true, length: 64, comment: '手机号哈希值' })
+  phoneHash: string;
 
   @Column({ length: 255 })
   password: string;

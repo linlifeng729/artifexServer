@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { RegisterDto } from '@/modules/auth/dto/register.dto';
-import { UserService } from '@/modules/user/user.service';
+import { UserService } from '@/modules/user/services/user.service';
 
 @Injectable()
 export class AuthService {
@@ -40,11 +40,14 @@ export class AuthService {
     const payload = { sub: user.id, phone: user.phone };
     const token = await this.jwtService.signAsync(payload);
 
+    // 返回不包含phoneHash的用户信息
+    const { phoneHash: _, ...result } = user;
+
     return {
       success: true,
       message: '登录成功',
       data: {
-        user,
+        user: result,
         token
       }
     };

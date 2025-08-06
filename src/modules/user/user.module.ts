@@ -1,8 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserController } from '@/modules/user/user.controller';
-import { UserService } from '@/modules/user/user.service';
+import { UserService } from '@/modules/user/services/user.service';
 import { User } from '@/modules/user/entities/user.entity';
+import { EncryptionService } from '@/modules/user/services/encryption.service';
 
 /**
  * 用户模块
@@ -14,7 +15,7 @@ import { User } from '@/modules/user/entities/user.entity';
     TypeOrmModule.forFeature([User])
   ],
   controllers: [UserController],
-  providers: [UserService],
-  exports: [UserService], // 导出服务供其他模块使用（如认证模块）
+  providers: [UserService, EncryptionService],
+  exports: [UserService, EncryptionService],
 })
 export class UserModule {}
