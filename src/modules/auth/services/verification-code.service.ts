@@ -146,8 +146,8 @@ export class VerificationCodeService {
         if (!user.verificationCodeExpiredAt || user.verificationCodeExpiredAt < new Date()) {
           // 清除过期的验证码
           await manager.update(User, user.id, {
-            verificationCode: undefined,
-            verificationCodeExpiredAt: undefined
+            verificationCode: () => 'NULL',
+            verificationCodeExpiredAt: () => 'NULL'
           });
           return {
             success: false,
@@ -165,8 +165,8 @@ export class VerificationCodeService {
 
         // 验证成功，立即清除验证码（在同一事务中）
         await manager.update(User, user.id, {
-          verificationCode: undefined,
-          verificationCodeExpiredAt: undefined
+          verificationCode: () => 'NULL',
+          verificationCodeExpiredAt: () => 'NULL'
         });
 
         // 返回用户信息（不包含敏感字段）
@@ -193,15 +193,14 @@ export class VerificationCodeService {
   @Cron(CronExpression.EVERY_5_MINUTES)
   async cleanupExpiredCodes(): Promise<void> {
     try {
-      const now = new Date();
       await this.userRepository
         .createQueryBuilder()
         .update(User)
         .set({
-          verificationCode: undefined,
-          verificationCodeExpiredAt: undefined
+          verificationCode: () => 'NULL',
+          verificationCodeExpiredAt: () => 'NULL'
         })
-        .where('verificationCodeExpiredAt < :now', { now })
+        .where('verificationCodeExpiredAt < :now AND verificationCode IS NOT NULL', { now: new Date() })
         .execute();
     } catch (error) {
       this.logger.error('清理过期验证码失败:', error);
