@@ -11,7 +11,7 @@ import {
   HttpCode, 
 } from '@nestjs/common';
 import { UserService } from '@/modules/user/services/user.service';
-import { CreateUserDto, UpdateUserDto } from '@/modules/user/dto';
+import { UpdateUserDto } from '@/modules/user/dto';
 
 /**
  * 用户控制器
@@ -46,19 +46,6 @@ export class UserController {
     return {
       success: true,
       message: '获取用户信息成功',
-      data: { user },
-    };
-  }
-
-  /**
-   * 创建管理员
-   */
-  @Post('admins')
-  async createAdmin(@Body() createUserDto: CreateUserDto) {
-    const user = await this.userService.create(createUserDto);
-    return {
-      success: true,
-      message: '创建管理员成功',
       data: { user },
     };
   }

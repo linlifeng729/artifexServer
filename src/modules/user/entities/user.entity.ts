@@ -15,11 +15,17 @@ export class User {
   @Column({ unique: true, length: 64, comment: '手机号哈希值' })
   phoneHash: string;
 
-  @Column({ length: 255 })
-  password: string;
-
   @Column({ nullable: true, length: 50 })
   nickname?: string;
+
+  @Column({ nullable: true, length: 10, comment: '验证码' })
+  verificationCode?: string;
+
+  @Column({ type: 'timestamp', nullable: true, comment: '验证码过期时间' })
+  verificationCodeExpiredAt?: Date;
+
+  @Column({ type: 'timestamp', nullable: true, comment: '上次发送验证码时间' })
+  lastCodeSentAt?: Date;
 
   @Column({ 
     type: 'enum', 

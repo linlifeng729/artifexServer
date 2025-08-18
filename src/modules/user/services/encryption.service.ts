@@ -17,17 +17,11 @@ export class EncryptionService {
   constructor(private readonly configService: ConfigService) {
     // 从配置服务获取加密密钥，必须在环境变量中配置
     const encryptionKey = this.configService.get<string>('PHONE_ENCRYPTION_KEY');
-    if (!encryptionKey) {
-      throw new Error('PHONE_ENCRYPTION_KEY 环境变量未配置，请检查 .env 文件');
-    }
-    this.encryptionKey = Buffer.from(encryptionKey, 'hex');
+    this.encryptionKey = Buffer.from(encryptionKey!, 'hex');
 
     // 从配置服务获取初始化向量，必须在环境变量中配置
     const iv = this.configService.get<string>('PHONE_ENCRYPTION_IV');
-    if (!iv) {
-      throw new Error('PHONE_ENCRYPTION_IV 环境变量未配置，请检查 .env 文件');
-    }
-    this.iv = Buffer.from(iv, 'hex');
+    this.iv = Buffer.from(iv!, 'hex');
   }
 
   /**

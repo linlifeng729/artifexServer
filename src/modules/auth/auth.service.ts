@@ -1,46 +1,53 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
-import { RegisterDto } from '@/modules/auth/dto/register.dto';
+import { SendVerificationCodeDto } from '@/modules/auth/dto/send-verificationcode.dto';
 import { UserService } from '@/modules/user/services/user.service';
+import { VerificationCodeService } from '@/modules/auth/services/verification-code.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
+    private readonly verificationCodeService: VerificationCodeService,
   ) {}
 
-  async validateUser(loginDto: LoginDto) {
-    const { phone, password } = loginDto;
-    
-    // 从数据库查找用户
-    const user = await this.userService.findByPhone(phone);
-
-    if (user && await this.userService.validatePassword(user, password)) {
-      const { password: _, ...result } = user;
-      return result;
-    }
-    
-    return null;
-  }
-
   async login(loginDto: LoginDto) {
-    const user = await this.validateUser(loginDto);
+    const { phone, verificationCode } = loginDto;
     
-    if (!user) {
+    // 验证验证码
+    const verifyResult = await this.verificationCodeService.verifyCode(phone, verificationCode);
+    
+    if (!verifyResult.success || !verifyResult.user) {
       return {
         success: false,
-        message: '手机号或密码错误',
+        message: verifyResult.message || '手机号或验证码错误',
         data: null
       };
+    }
+
+    let user = verifyResult.user;
+
+    // 检查用户是否已完成注册（通过role字段判断）
+    if (!user.role) {
+      try {
+        const updatedUser = await this.userService.completeUserRegistration(user.id);
+        user = updatedUser;
+      } catch (error) {
+        return {
+          success: false,
+          message: '用户信息完善失败',
+          data: null
+        };
+      }
     }
 
     // 生成JWT token
     const payload = { sub: user.id, phone: user.phone };
     const token = await this.jwtService.signAsync(payload);
 
-    // 返回不包含phoneHash的用户信息
+    // 返回不包含敏感字段的用户信息  
     const { phoneHash: _, ...result } = user;
 
     return {
@@ -53,31 +60,9 @@ export class AuthService {
     };
   }
 
-  // 用户注册后自动登录
-  async registerAndLogin(registerDto: RegisterDto) {
-    try {
-      // 注册用户
-      const user = await this.userService.register(registerDto);
-      
-      // 自动登录，生成token
-      const payload = { sub: user.id, phone: user.phone };
-      const token = await this.jwtService.signAsync(payload);
-      
-      return {
-        success: true,
-        message: '注册成功',
-        data: {
-          user,
-          token
-        }
-      };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.message || '注册失败',
-        data: null
-      };
-    }
+  // 发送验证码
+  async sendVerificationCode(sendCodeDto: SendVerificationCodeDto) {
+    return await this.verificationCodeService.sendVerificationCode(sendCodeDto.phone);
   }
 
   // 验证JWT token

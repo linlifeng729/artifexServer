@@ -2,10 +2,9 @@ import { Injectable, ConflictException, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '@/modules/user/entities/user.entity';
-import { CreateUserDto, UpdateUserDto } from '@/modules/user/dto';
-import { RegisterDto } from '@/modules/auth/dto/register.dto';
+import { UpdateUserDto } from '@/modules/user/dto';
+
 import { EncryptionService } from '@/modules/user/services/encryption.service';
-import * as bcrypt from 'bcrypt';
 
 /**
  * 用户服务
@@ -20,19 +19,9 @@ export class UserService {
   ) {}
 
   /**
-   * 根据手机号查找用户
+   * 根据ID查找用户（不包含敏感字段，返回解密后的手机号）
    */
-  async findByPhone(phone: string): Promise<User | null> {
-    const phoneHash = this.encryptionService.hashPhone(phone);
-    return await this.userRepository.findOne({ 
-      where: { phoneHash, isActive: true } 
-    });
-  }
-
-  /**
-   * 根据ID查找用户（不包含密码，返回解密后的手机号）
-   */
-  async findById(id: number): Promise<Omit<User, 'password' | 'phoneHash'> | null> {
+  async findById(id: number): Promise<Omit<User, 'phoneHash' | 'verificationCode' | 'verificationCodeExpiredAt'> | null> {
     const user = await this.userRepository.findOne({
       where: { id, isActive: true },
       select: ['id', 'phone', 'nickname', 'role', 'isActive', 'createdAt', 'updatedAt']
@@ -56,70 +45,62 @@ export class UserService {
   }
 
   /**
-   * 创建用户的核心逻辑（私有方法）
+   * 完善用户注册信息（首次登录时调用）
+   * 将临时用户转为正式用户
    */
-  private async _createUser(
-    userData: { phone: string; password: string; nickname?: string },
-    role: 'user' | 'admin'
-  ): Promise<Omit<User, 'password' | 'phoneHash'>> {
-    // 检查手机号是否已存在
-    const existingUser = await this.findByPhone(userData.phone);
-    if (existingUser) {
-      throw new ConflictException('手机号已存在');
+  async completeUserRegistration(userId: number, nickname?: string): Promise<Omit<User, 'verificationCode' | 'verificationCodeExpiredAt'>> {
+    // 查找用户
+    const user = await this.userRepository.findOne({ where: { id: userId, isActive: true } });
+    if (!user) {
+      throw new NotFoundException('用户不存在');
     }
 
-    // 密码加密
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
+    // 检查用户是否已经完成注册
+    if (user.role) {
+      // 用户已经完成注册，返回解密后的用户信息
+      return this._getUserWithDecryptedPhone(user);
+    }
 
-    // 手机号加密和哈希
-    const encryptedPhone = this.encryptionService.encryptPhone(userData.phone);
-    const phoneHash = this.encryptionService.hashPhone(userData.phone);
-
-    // 创建用户
-    const user = this.userRepository.create({
-      phone: encryptedPhone,
-      phoneHash,
-      password: hashedPassword,
-      nickname: userData.nickname,
-      role,
-    });
-
-    const savedUser = await this.userRepository.save(user);
+    // 完善用户信息，设置为普通用户
+    const updateData: Partial<User> = { role: 'user' };
+    if (nickname) {
+      updateData.nickname = nickname;
+    }
     
-    // 返回不包含密码和phoneHash的用户信息
-    const { password, phoneHash: _, ...result } = savedUser;
+    await this.userRepository.update(userId, updateData);
 
-    return {
-      ...result,
-    };
+    // 重新查询更新后的用户信息
+    const updatedUser = await this.userRepository.findOne({ 
+      where: { id: userId, isActive: true },
+      select: ['id', 'phone', 'phoneHash', 'nickname', 'role', 'isActive', 'createdAt', 'updatedAt']
+    });
+    if (!updatedUser) {
+      throw new NotFoundException('用户信息更新失败');
+    }
+
+    return this._getUserWithDecryptedPhone(updatedUser);
   }
 
   /**
-   * 创建管理员
+   * 辅助方法：返回包含解密手机号的用户信息
    */
-  async create(createUserDto: CreateUserDto): Promise<Omit<User, 'password' | 'phoneHash'>> {
-    return this._createUser(createUserDto, 'admin');
-  }
-
-  /**
-   * 用户注册（普通用户）
-   */
-  async register(registerDto: RegisterDto): Promise<Omit<User, 'password' | 'phoneHash'>> {
-    return this._createUser(registerDto, 'user');
-  }
-
-  /**
-   * 验证用户密码
-   */
-  async validatePassword(user: User, password: string): Promise<boolean> {
-    return await bcrypt.compare(password, user.password);
+  private _getUserWithDecryptedPhone(user: User): Omit<User, 'verificationCode' | 'verificationCodeExpiredAt'> {
+    try {
+      const decryptedPhone = this.encryptionService.decryptPhone(user.phone);
+      const { verificationCode, verificationCodeExpiredAt, ...result } = user;
+      return {
+        ...result,
+        phone: decryptedPhone
+      };
+    } catch (error) {
+      throw new Error('用户数据解密失败');
+    }
   }
 
   /**
    * 更新用户信息
    */
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<Omit<User, 'password' | 'phoneHash'> | null> {
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<Omit<User, 'phoneHash' | 'verificationCode' | 'verificationCodeExpiredAt'> | null> {
     const user = await this.userRepository.findOne({ where: { id, isActive: true } });
     if (!user) {
       throw new NotFoundException('用户不存在');
@@ -141,7 +122,7 @@ export class UserService {
    * 获取所有用户（分页）
    */
   async findAll(page: number = 1, limit: number = 10): Promise<{
-    users: Omit<User, 'password' | 'phoneHash'>[];
+    users: Omit<User, 'phoneHash' | 'verificationCode' | 'verificationCodeExpiredAt'>[];
     total: number;
     page: number;
     limit: number;

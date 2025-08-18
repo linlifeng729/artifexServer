@@ -1,4 +1,4 @@
-import { IsString, MinLength, MaxLength, Matches } from 'class-validator';
+import { IsString, Length, Matches } from 'class-validator';
 
 /**
  * 用户登录数据传输对象
@@ -9,8 +9,8 @@ export class LoginDto {
   @Matches(/^1[3-9]\d{9}$/, { message: '请输入正确的手机号格式' })
   phone: string;
 
-  @IsString({ message: '密码必须是字符串' })
-  @MinLength(6, { message: '密码长度至少6位' })
-  @MaxLength(100, { message: '密码长度不能超过100位' })
-  password: string;
+  @IsString({ message: '验证码必须是字符串' })
+  @Length(6, 6, { message: '验证码必须是6位数字' })
+  @Matches(/^\d{6}$/, { message: '验证码必须是6位数字' })
+  verificationCode: string;
 }
