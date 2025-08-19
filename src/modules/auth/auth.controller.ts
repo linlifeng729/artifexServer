@@ -1,5 +1,5 @@
 import { Controller, Post, Body, HttpCode } from '@nestjs/common';
-import { AuthService } from '@/modules/auth/auth.service';
+import { AuthService } from '@/modules/auth/services/auth.service';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { SendVerificationCodeDto } from '@/modules/auth/dto/send-verificationcode.dto';
 import { Public } from '@/modules/auth/decorators/public.decorator';
@@ -10,10 +10,14 @@ import { Public } from '@/modules/auth/decorators/public.decorator';
  */
 @Controller('api/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+  ) {}
 
   /**
    * 用户登录
+   * 
+   * @param loginDto 登录数据传输对象，包含手机号和验证码
    */
   @Public()
   @Post('login')
@@ -24,6 +28,8 @@ export class AuthController {
 
   /**
    * 发送验证码
+   * 
+   * @param sendCodeDto 发送验证码数据传输对象，包含手机号
    */
   @Public()
   @Post('send/verificationcode')

@@ -7,7 +7,10 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
-  id: number;
+  numericId: number;
+
+  @Column({ type: 'varchar', length: 36, unique: true, comment: '用户UUID' })
+  id: string;
 
   @Column({ length: 255, comment: '加密的手机号' })
   phone: string;
@@ -35,7 +38,7 @@ export class User {
   })
   role: 'user' | 'admin';
 
-  @Column({ default: true })
+  @Column({ type: 'tinyint', width: 1, default: 1, comment: '是否激活' })
   isActive: boolean;
 
   @CreateDateColumn({ type: 'timestamp' })

@@ -14,7 +14,9 @@ export class EncryptionService {
   // 初始化向量 (16字节)
   private readonly iv: Buffer;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+  ) {
     // 从配置服务获取加密密钥，必须在环境变量中配置
     const encryptionKey = this.configService.get<string>('PHONE_ENCRYPTION_KEY');
     this.encryptionKey = Buffer.from(encryptionKey!, 'hex');

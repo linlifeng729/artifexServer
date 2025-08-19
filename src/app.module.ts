@@ -1,15 +1,20 @@
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 
 import { AppController } from '@/app.controller';
 import { UserModule } from '@/modules/user/user.module';
 import { AuthModule } from '@/modules/auth/auth.module';
+import { NftModule } from '@/modules/nft/nft.module';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt.guard';
+import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
+import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
 import { User } from '@/modules/user/entities/user.entity';
+import { Nft } from '@/modules/nft/entities/nft.entity';
+import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
 
 /**
  * 应用根模块
@@ -36,7 +41,7 @@ import { User } from '@/modules/user/entities/user.entity';
         username: configService.get<string>('DB_USERNAME', 'root'),
         password: configService.get<string>('DB_PASSWORD', ''),
         database: configService.get<string>('DB_DATABASE', 'artifex'),
-        entities: [User],
+        entities: [User, Nft, NftInstance],
         synchronize: configService.get<boolean>('DB_SYNCHRONIZE', false),
         logging: configService.get<boolean>('DB_LOGGING', false),
       }),
@@ -55,6 +60,7 @@ import { User } from '@/modules/user/entities/user.entity';
     // 业务模块
     UserModule,
     AuthModule,
+    NftModule,
   ],
 
   controllers: [
@@ -62,10 +68,22 @@ import { User } from '@/modules/user/entities/user.entity';
   ],
 
   providers: [
+    // 全局 Logger
+    Logger,
     // 全局 JWT 认证守卫
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // 全局响应拦截器
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor,
+    },
+    // 全局异常过滤器
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
     },
   ],
 })

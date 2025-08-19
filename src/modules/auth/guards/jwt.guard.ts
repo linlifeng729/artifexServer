@@ -5,7 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AuthService } from '@/modules/auth/auth.service';
+import { AuthService } from '@/modules/auth/services/auth.service';
 import { IS_PUBLIC_KEY } from '@/modules/auth/decorators/public.decorator';
 
 /**

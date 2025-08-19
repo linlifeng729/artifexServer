@@ -1,14 +1,14 @@
 import { 
   Controller, 
   Get, 
-  Post, 
   Put, 
   Delete, 
   Body, 
   Param, 
   Query, 
   ParseIntPipe, 
-  HttpCode, 
+  ParseUUIDPipe,
+  HttpCode,
 } from '@nestjs/common';
 import { UserService } from '@/modules/user/services/user.service';
 import { UpdateUserDto } from '@/modules/user/dto';
@@ -19,64 +19,56 @@ import { UpdateUserDto } from '@/modules/user/dto';
  */
 @Controller('api/users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+  ) {}
 
   /**
    * 获取所有用户（分页）
+   * 
+   * @param page 页码，默认为1
+   * @param limit 每页数量，默认为10
    */
   @Get()
   async findAll(
     @Query('page', ParseIntPipe) page: number = 1,
     @Query('limit', ParseIntPipe) limit: number = 10,
   ) {
-    const result = await this.userService.findAll(page, limit);
-    return {
-      success: true,
-      message: '获取用户列表成功',
-      data: result,
-    };
+    return await this.userService.findAll(page, limit);
   }
 
   /**
    * 根据ID获取用户信息
+   * 
+   * @param id 用户的UUID标识符
    */
   @Get(':id')
-  async findById(@Param('id', ParseIntPipe) id: number) {
-    const user = await this.userService.findById(id);
-    return {
-      success: true,
-      message: '获取用户信息成功',
-      data: { user },
-    };
+  async findById(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.userService.findById(id);
   }
 
   /**
    * 更新用户信息
+   * 
+   * @param id 用户的UUID标识符
+   * @param updateUserDto 更新用户信息的数据传输对象
    */
   @Put(':id')
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    const user = await this.userService.update(id, updateUserDto);
-    return {
-      success: true,
-      message: '更新用户信息成功',
-      data: { user },
-    };
+    return await this.userService.update(id, updateUserDto);
   }
 
   /**
    * 删除用户（软删除）
+   * 
+   * @param id 用户的UUID标识符
    */
   @Delete(':id')
   @HttpCode(204)
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    const success = await this.userService.softDelete(id);
-    return {
-      success,
-      message: success ? '删除用户成功' : '删除用户失败',
-      data: null,
-    };
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.userService.softDelete(id);
   }
 }

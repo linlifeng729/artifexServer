@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as tencentcloud from 'tencentcloud-sdk-nodejs';
 
@@ -29,11 +29,14 @@ export interface SmsResult {
 
 @Injectable()
 export class TencentSmsService {
-  private readonly logger = new Logger(TencentSmsService.name);
   private readonly smsConfig: TencentSmsConfig;
   private smsClient: any;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @Inject(Logger)
+    private readonly logger: Logger,
+  ) {
     this.smsConfig = this.getSmsConfig();
     this.initSmsClient();
   }
