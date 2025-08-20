@@ -18,6 +18,6 @@ async function bootstrap() {
     forbidNonWhitelisted: true, // 如果请求中包含DTO中未定义的属性，则抛出错误
   }));
 
-  await app.listen(3000, '0.0.0.0');
+  await app.listen(12600, '0.0.0.0');
 }
 bootstrap();
