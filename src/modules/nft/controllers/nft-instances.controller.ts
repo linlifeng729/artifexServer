@@ -38,10 +38,6 @@ export class NftInstancesController {
   /**
    * 发布NFT在售商品实例（用户鉴权）
    * 
-   * 基于现有的NFT类型模板创建具体的NFT商品实例
-   * 用户可以设置价格、数量等商品属性
-   * 只有已登录的用户才能发布NFT实例
-   * 
    * @param createNftInstanceDto 创建NFT实例的数据传输对象
    * @param request HTTP请求对象，包含已认证的用户信息
    * @returns Promise<ApiResponse<NftInstanceResponseDto>> 创建成功的NFT实例信息
@@ -59,10 +55,6 @@ export class NftInstancesController {
   /**
    * 获取NFT在售商品实例列表（公开访问）
    * 
-   * 查看所有已发布的NFT商品实例，支持状态筛选
-   * 包含价格、库存、所有者等商品信息
-   * 任何用户都可以浏览NFT市场
-   * 
    * @param status 可选的状态筛选参数，用于过滤NFT实例状态（available | sold | reserved）
    * @returns Promise<ApiResponse<NftInstanceResponseDto[]>> NFT实例列表
    */
@@ -75,28 +67,7 @@ export class NftInstancesController {
   }
 
   /**
-   * 获取NFT在售商品实例详情（公开访问）
-   * 
-   * 查看指定NFT商品实例的详细信息
-   * 包含商品属性、价格、库存、交易历史等
-   * 任何用户都可以查看NFT详情
-   * 
-   * @param id NFT实例ID
-   * @returns Promise<ApiResponse<NftInstanceResponseDto>> NFT实例详情信息
-   */
-  @Public()
-  @Get(':id')
-  async findNftInstanceById(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<ApiResponse<NftInstanceResponseDto>> {
-    return await this.nftInstancesService.findNftInstanceById(id);
-  }
-
-  /**
-   * 获取当前用户的NFT实例列表（用户鉴权）
-   * 
-   * 查看当前登录用户发布的所有NFT实例
-   * 用户可以管理自己的NFT商品
+   * 获取当前用户登录在售商品实例列表（用户鉴权）
    * 
    * @param request HTTP请求对象，包含已认证的用户信息
    * @returns Promise<ApiResponse<NftInstanceResponseDto[]>> 用户的NFT实例列表
@@ -111,10 +82,21 @@ export class NftInstancesController {
   }
 
   /**
-   * 根据NFT类型获取实例列表（公开访问）
+   * 获取在售商品实例详情（公开访问）
    * 
-   * 查看特定NFT类型下的所有实例
-   * 用户可以浏览某个类型的所有可用商品
+   * @param id NFT实例ID
+   * @returns Promise<ApiResponse<NftInstanceResponseDto>> NFT实例详情信息
+   */
+  @Public()
+  @Get(':id')
+  async findNftInstanceById(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<ApiResponse<NftInstanceResponseDto>> {
+    return await this.nftInstancesService.findNftInstanceById(id);
+  }
+
+  /**
+   * 获取某个类型下所有在售商品列表（公开访问）
    * 
    * @param nftTypeId NFT类型ID
    * @returns Promise<ApiResponse<NftInstanceResponseDto[]>> 指定类型的NFT实例列表
