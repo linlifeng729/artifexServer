@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -7,6 +7,7 @@ import { User } from '@/modules/user/entities/user.entity';
 import { EncryptionService } from '@/modules/user/services/encryption.service';
 import { TencentSmsService } from './tencent-sms.service';
 import { ResponseHelper, ApiResponse } from '@/common';
+import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
 
 /**
  * 验证码服务
@@ -23,10 +24,13 @@ export class VerificationCodeService {
   ) {}
 
   /**
-   * 生成6位数字验证码
+   * 生成验证码
+   * @returns 返回指定长度的数字验证码
    */
   private generateVerificationCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    const min = Math.pow(10, AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH - 1);
+    const max = Math.pow(10, AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH) - 1;
+    return Math.floor(min + Math.random() * (max - min + 1)).toString();
   }
 
   /**
@@ -38,23 +42,26 @@ export class VerificationCodeService {
       const phoneHash = this.encryptionService.hashPhone(phone);
       let user = await this.userRepository.findOne({ where: { phoneHash } });
 
-      // 检查发送频率限制（60秒内不能重复发送）
+      // 检查发送频率限制
       if (user?.lastCodeSentAt) {
+        const intervalMs = AUTH_CONSTANTS.VERIFICATION_CODE.SEND_INTERVAL_SECONDS * 1000;
         const timeDiff = Date.now() - user.lastCodeSentAt.getTime();
-        if (timeDiff < 60000) { // 60秒
-          const remainingTime = Math.ceil((60000 - timeDiff) / 1000);
-          throw new Error(`请等待${remainingTime}秒后再重新发送验证码`);
+        if (timeDiff < intervalMs) {
+          const remainingTime = Math.ceil((intervalMs - timeDiff) / 1000);
+          const message = AUTH_CONSTANTS.ERROR_MESSAGES.SMS_SEND_TOO_FREQUENT.replace('{seconds}', remainingTime.toString());
+          throw new BadRequestException(message);
         }
       }
 
-      // 生成验证码和过期时间（5分钟后过期）
+      // 生成验证码和过期时间
       const verificationCode = this.generateVerificationCode();
-      const expiredAt = new Date(Date.now() + 5 * 60 * 1000); // 5分钟后过期
+      const expirationMs = AUTH_CONSTANTS.VERIFICATION_CODE.EXPIRATION_MINUTES * 60 * 1000;
+      const expiredAt = new Date(Date.now() + expirationMs);
       const now = new Date();
 
       if (user) {
         // 更新现有用户的验证码
-        await this.userRepository.update(user.numericId, {
+        await this.userRepository.update(user.userId, {
           verificationCode,
           verificationCodeExpiredAt: expiredAt,
           lastCodeSentAt: now
@@ -79,15 +86,21 @@ export class VerificationCodeService {
         const smsResult = await this.tencentSmsService.sendVerificationCode(phone, verificationCode);
         
         if (!smsResult.success) {
-          throw new Error(smsResult.message || '验证码发送失败，请稍后重试');
+          throw new InternalServerErrorException(smsResult.message || AUTH_CONSTANTS.ERROR_MESSAGES.SMS_SEND_FAILED);
         }
       } catch (error) {
-        throw new Error('短信发送异常，请稍后重试');
+        if (error instanceof BadRequestException || error instanceof InternalServerErrorException) {
+          throw error;
+        }
+        throw new InternalServerErrorException(AUTH_CONSTANTS.ERROR_MESSAGES.SMS_SEND_FAILED);
       }
 
-      return ResponseHelper.success(true, '验证码发送成功');
+      return ResponseHelper.success(true, AUTH_CONSTANTS.SUCCESS_MESSAGES.CODE_SENT);
     } catch (error) {
-      throw new Error('验证码发送失败，请稍后重试');
+      if (error instanceof BadRequestException || error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(AUTH_CONSTANTS.ERROR_MESSAGES.SMS_SEND_FAILED);
     }
   }
 
@@ -107,30 +120,30 @@ export class VerificationCodeService {
         });
 
         if (!user) {
-          return ResponseHelper.error('用户不存在', null);
+          return ResponseHelper.error(AUTH_CONSTANTS.ERROR_MESSAGES.USER_NOT_EXIST, null);
         }
 
         if (!user.verificationCode) {
-          return ResponseHelper.error('请先获取验证码', null);
+          return ResponseHelper.error(AUTH_CONSTANTS.ERROR_MESSAGES.CODE_NOT_EXIST, null);
         }
 
         // 检查验证码是否过期
         if (!user.verificationCodeExpiredAt || user.verificationCodeExpiredAt < new Date()) {
           // 清除过期的验证码
-          await manager.update(User, user.numericId, {
+          await manager.update(User, user.userId, {
             verificationCode: () => 'NULL',
             verificationCodeExpiredAt: () => 'NULL'
           });
-          return ResponseHelper.error('验证码已过期，请重新获取', null);
+          return ResponseHelper.error(AUTH_CONSTANTS.ERROR_MESSAGES.CODE_EXPIRED, null);
         }
 
         // 验证验证码
         if (user.verificationCode !== code) {
-          return ResponseHelper.error('验证码错误', null);
+          return ResponseHelper.error(AUTH_CONSTANTS.ERROR_MESSAGES.CODE_WRONG, null);
         }
 
         // 验证成功，立即清除验证码（在同一事务中）
-        await manager.update(User, user.numericId, {
+        await manager.update(User, user.userId, {
           verificationCode: () => 'NULL',
           verificationCodeExpiredAt: () => 'NULL'
         });
@@ -138,7 +151,7 @@ export class VerificationCodeService {
         // 返回用户信息（不包含敏感字段）
         const { verificationCode, verificationCodeExpiredAt, ...result } = user;
         
-        return ResponseHelper.success(result, '验证码验证成功');
+        return ResponseHelper.success(result, AUTH_CONSTANTS.SUCCESS_MESSAGES.CODE_VERIFIED);
       } catch (error) {
         return ResponseHelper.error('验证失败，请稍后重试', null);
       }

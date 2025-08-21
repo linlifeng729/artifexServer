@@ -7,6 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ADMIN_ONLY_KEY } from '@/modules/auth/decorators/admin-only.decorator';
 import { IS_PUBLIC_KEY } from '@/modules/auth/decorators/public.decorator';
+import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
 
 /**
  * 管理员权限守卫
@@ -56,12 +57,12 @@ export class AdminOnlyGuard implements CanActivate {
 
     // 检查用户是否存在
     if (!user) {
-      throw new ForbiddenException('用户信息缺失');
+      throw new ForbiddenException(AUTH_CONSTANTS.ERROR_MESSAGES.USER_INFO_MISSING);
     }
     
     // 检查用户角色是否为管理员
-    if (user.role !== 'admin') {
-      throw new ForbiddenException('权限不足，请联系管理员');
+    if (user.role !== AUTH_CONSTANTS.ROLES.ADMIN) {
+      throw new ForbiddenException(AUTH_CONSTANTS.ERROR_MESSAGES.PERMISSION_DENIED);
     }
 
     return true;

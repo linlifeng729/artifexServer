@@ -3,7 +3,7 @@ DROP TABLE IF EXISTS `users`;
 
 -- 创建用户表
 CREATE TABLE `users` (
-  `numericId` int NOT NULL AUTO_INCREMENT COMMENT '用户ID（自增）',
+  `userId` int NOT NULL AUTO_INCREMENT COMMENT '用户ID',
   `id` varchar(36) NOT NULL COMMENT '用户UUID',
   `phone` varchar(255) NOT NULL COMMENT '加密的手机号',
   `phoneHash` varchar(64) NOT NULL COMMENT '手机号哈希值',
@@ -15,7 +15,7 @@ CREATE TABLE `users` (
   `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1、激活，0、禁用',
   `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  PRIMARY KEY (`numericId`),
+  PRIMARY KEY (`userId`),
   UNIQUE KEY `UK_id` (`id`),
   UNIQUE KEY `UK_phoneHash` (`phoneHash`),
   KEY `IDX_users_role` (`role`),

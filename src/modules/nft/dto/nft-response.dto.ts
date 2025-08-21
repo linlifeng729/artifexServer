@@ -1,4 +1,5 @@
 import { Nft } from '@/modules/nft/entities/nft.entity';
+import { NftStatus } from '@/modules/nft/constants';
 
 /**
  * NFT响应DTO
@@ -8,18 +9,14 @@ export class NftResponseDto {
   name: string;
   image: string;
   type: string;
-  status: 'active' | 'inactive';
+  status: NftStatus;
   createdAt: Date;
   updatedAt: Date;
 
-  constructor() {
-    const now = new Date();
-    this.createdAt = now;
-    this.updatedAt = now;
-  }
-
   /**
    * 从NFT实体转换为响应DTO
+   * @param nft NFT实体
+   * @returns NFT响应DTO
    */
   static fromEntity(nft: Nft): NftResponseDto {
     const response = new NftResponseDto();
@@ -28,6 +25,8 @@ export class NftResponseDto {
     response.image = nft.image;
     response.type = nft.type;
     response.status = nft.status;
+    response.createdAt = nft.createdAt;
+    response.updatedAt = nft.updatedAt;
     return response;
   }
 }

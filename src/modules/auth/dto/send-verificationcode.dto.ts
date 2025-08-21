@@ -1,4 +1,5 @@
 import { IsString, Matches } from 'class-validator';
+import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
 
 /**
  * 发送验证码数据传输对象
@@ -6,6 +7,6 @@ import { IsString, Matches } from 'class-validator';
  */
 export class SendVerificationCodeDto {
   @IsString({ message: '手机号必须是字符串' })
-  @Matches(/^1[3-9]\d{9}$/, { message: '请输入正确的手机号格式' })
+  @Matches(AUTH_CONSTANTS.PHONE.REGEX, { message: AUTH_CONSTANTS.ERROR_MESSAGES.PHONE_INVALID })
   phone: string;
 }

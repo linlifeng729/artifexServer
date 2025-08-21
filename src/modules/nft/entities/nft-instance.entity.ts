@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { Nft } from './nft.entity';
 import { User } from '../../user/entities/user.entity';
+import { NFT_INSTANCE_STATUS_VALUES, NftInstanceStatus } from '@/modules/nft/constants';
 
 /**
  * NFT实例实体
@@ -37,11 +38,11 @@ export class NftInstance {
 
   @Column({ 
     type: 'enum', 
-    enum: ['available', 'sold', 'reserved'], 
+    enum: NFT_INSTANCE_STATUS_VALUES, 
     default: 'available',
     comment: '可售、已售、预留' 
   })
-  status: 'available' | 'sold' | 'reserved';
+  status: NftInstanceStatus;
 
   @CreateDateColumn({ 
     type: 'timestamp', 
@@ -61,6 +62,6 @@ export class NftInstance {
   nft: Nft;
 
   @ManyToOne(() => User, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'ownerId', referencedColumnName: 'numericId' })
+  @JoinColumn({ name: 'ownerId', referencedColumnName: 'userId' })
   owner: User;
 }

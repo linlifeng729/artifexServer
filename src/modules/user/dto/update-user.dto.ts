@@ -1,4 +1,5 @@
 import { IsString, IsOptional, IsEnum, Matches, MaxLength } from 'class-validator';
+import { USER_CONSTANTS, UserRole } from '@/modules/user/constants';
 
 /**
  * 更新用户的数据传输对象
@@ -7,15 +8,21 @@ import { IsString, IsOptional, IsEnum, Matches, MaxLength } from 'class-validato
 export class UpdateUserDto {
   @IsOptional()
   @IsString({ message: '手机号必须是字符串' })
-  @Matches(/^1[3-9]\d{9}$/, { message: '请输入正确的手机号格式' })
+  @Matches(USER_CONSTANTS.VALIDATION.PHONE_REGEX, { 
+    message: USER_CONSTANTS.ERROR_MESSAGES.PHONE_FORMAT_INVALID 
+  })
   phone?: string;
 
   @IsOptional()
   @IsString({ message: '昵称必须是字符串' })
-  @MaxLength(50, { message: '昵称长度不能超过50位' })
+  @MaxLength(USER_CONSTANTS.CONSTRAINTS.NICKNAME_MAX_LENGTH, { 
+    message: USER_CONSTANTS.ERROR_MESSAGES.NICKNAME_TOO_LONG 
+  })
   nickname?: string;
 
   @IsOptional()
-  @IsEnum(['user', 'admin'], { message: '角色必须是 user 或 admin' })
-  role?: 'user' | 'admin';
+  @IsEnum(Object.values(USER_CONSTANTS.ROLES), { 
+    message: USER_CONSTANTS.ERROR_MESSAGES.ROLE_INVALID 
+  })
+  role?: UserRole;
 }

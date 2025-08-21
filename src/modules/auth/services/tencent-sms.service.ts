@@ -1,6 +1,7 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as tencentcloud from 'tencentcloud-sdk-nodejs';
+import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
 
 // 导入对应产品模块的client models
 const SmsClient = tencentcloud.sms.v20210111.Client;
@@ -43,8 +44,26 @@ export class TencentSmsService {
 
   /**
    * 获取短信配置
+   * @throws InternalServerErrorException 当配置缺失时抛出异常
    */
   private getSmsConfig(): TencentSmsConfig {
+    const requiredConfigs = [
+      'TENCENT_SECRET_ID',
+      'TENCENT_SECRET_KEY', 
+      'TENCENT_SMS_SDK_APP_ID',
+      'TENCENT_SMS_SIGN_NAME',
+      'TENCENT_SMS_TEMPLATE_ID',
+      'TENCENT_SMS_REGION'
+    ];
+
+    // 检查所有必需的配置是否存在
+    const missingConfigs = requiredConfigs.filter(key => !this.configService.get<string>(key));
+    
+    if (missingConfigs.length > 0) {
+      this.logger.error(`腾讯云短信配置缺失: ${missingConfigs.join(', ')}`);
+      throw new InternalServerErrorException('短信服务配置不完整');
+    }
+
     return {
       secretId: this.configService.get<string>('TENCENT_SECRET_ID')!,
       secretKey: this.configService.get<string>('TENCENT_SECRET_KEY')!,
@@ -84,12 +103,15 @@ export class TencentSmsService {
 
   /**
    * 发送验证码短信
-   * @param phone 手机号（需要包含国际区号，如+86）
+   * @param phone 手机号（会自动添加国际区号）
    * @param code 验证码
    * @returns 发送结果
    */
   async sendVerificationCode(phone: string, code: string): Promise<SmsResult> {
-    try {      
+    try {
+      // 确保手机号包含国际区号
+      const formattedPhone = phone.startsWith('+') ? phone : `${AUTH_CONSTANTS.PHONE.INTERNATIONAL_PREFIX}${phone}`;
+      
       const params = {
         // 短信应用ID
         SmsSdkAppId: this.smsConfig.sdkAppId,
@@ -98,9 +120,9 @@ export class TencentSmsService {
         // 模板ID
         TemplateId: this.smsConfig.templateId,
         // 下发手机号码，采用E.164标准，+[国家或地区码][手机号]
-        PhoneNumberSet: [phone],
+        PhoneNumberSet: [formattedPhone],
         // 模板参数：[验证码, 有效期分钟数]
-        TemplateParamSet: [code, '5'],
+        TemplateParamSet: [code, AUTH_CONSTANTS.SMS.TEMPLATE_PARAMS.EXPIRATION_MINUTES],
       };
 
       this.logger.log(`准备发送短信到 ${phone}，验证码: ${code}`);

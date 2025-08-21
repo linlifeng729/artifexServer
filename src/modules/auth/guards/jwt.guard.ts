@@ -7,6 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { IS_PUBLIC_KEY } from '@/modules/auth/decorators/public.decorator';
+import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
 
 /**
  * JWT 认证守卫
@@ -62,21 +63,18 @@ export class JwtAuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      throw new UnauthorizedException('访问令牌缺失');
+      throw new UnauthorizedException(AUTH_CONSTANTS.ERROR_MESSAGES.TOKEN_MISSING);
     }
 
     try {
       // 验证 JWT token
-      const result = await this.authService.verifyToken(token);
-      if (!result.success) {
-        throw new UnauthorizedException(result.message);
-      }
+      const user = await this.authService.verifyToken(token);
       
       // 将用户信息附加到请求对象上，便于后续使用
-      request.user = result.data;
+      request.user = user;
       return true;
     } catch (error) {
-      throw new UnauthorizedException('无效的访问令牌');
+      throw new UnauthorizedException(AUTH_CONSTANTS.ERROR_MESSAGES.TOKEN_INVALID);
     }
   }
 
@@ -95,6 +93,6 @@ export class JwtAuthGuard implements CanActivate {
    */
   private extractTokenFromHeader(request: any): string | undefined {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+    return type === AUTH_CONSTANTS.JWT.BEARER_PREFIX ? token : undefined;
   }
 }

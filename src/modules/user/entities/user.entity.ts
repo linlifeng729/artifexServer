@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { USER_CONSTANTS, UserRole } from '@/modules/user/constants';
 
 /**
  * 用户实体
@@ -7,21 +8,41 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
-  numericId: number;
+  userId: number;
 
-  @Column({ type: 'varchar', length: 36, unique: true, comment: '用户UUID' })
+  @Column({ 
+    type: 'varchar', 
+    length: USER_CONSTANTS.CONSTRAINTS.ID_LENGTH, 
+    unique: true, 
+    comment: '用户UUID' 
+  })
   id: string;
 
-  @Column({ length: 255, comment: '加密的手机号' })
+  @Column({ 
+    length: USER_CONSTANTS.CONSTRAINTS.PHONE_LENGTH, 
+    comment: '加密的手机号' 
+  })
   phone: string;
 
-  @Column({ unique: true, length: 64, comment: '手机号哈希值' })
+  @Column({ 
+    unique: true, 
+    length: USER_CONSTANTS.CONSTRAINTS.PHONE_HASH_LENGTH, 
+    comment: '手机号哈希值' 
+  })
   phoneHash: string;
 
-  @Column({ nullable: true, length: 50 })
+  @Column({ 
+    nullable: true, 
+    length: USER_CONSTANTS.CONSTRAINTS.NICKNAME_MAX_LENGTH,
+    comment: '用户昵称'
+  })
   nickname?: string;
 
-  @Column({ nullable: true, length: 10, comment: '验证码' })
+  @Column({ 
+    nullable: true, 
+    length: USER_CONSTANTS.CONSTRAINTS.VERIFICATION_CODE_LENGTH, 
+    comment: '验证码' 
+  })
   verificationCode?: string;
 
   @Column({ type: 'timestamp', nullable: true, comment: '验证码过期时间' })
@@ -32,11 +53,11 @@ export class User {
 
   @Column({ 
     type: 'enum', 
-    enum: ['user', 'admin'], 
-    default: 'user',
-    comment: '用户角色：user-普通用户，admin-管理员'
+    enum: Object.values(USER_CONSTANTS.ROLES), 
+    default: USER_CONSTANTS.ROLES.USER,
+    comment: `用户角色：${USER_CONSTANTS.ROLES.USER}-普通用户，${USER_CONSTANTS.ROLES.ADMIN}-管理员`
   })
-  role: 'user' | 'admin';
+  role: UserRole;
 
   @Column({ type: 'tinyint', width: 1, default: 1, comment: '是否激活' })
   isActive: boolean;

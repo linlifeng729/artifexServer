@@ -17,5 +17,5 @@ CREATE TABLE `nft_instance` (
   KEY `IDX_nft_instance_price` (`price`),
   KEY `IDX_nft_instance_createdAt` (`createdAt`),
   CONSTRAINT `FK_nft_instance_nftId` FOREIGN KEY (`nftId`) REFERENCES `nft` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `FK_nft_instance_ownerId` FOREIGN KEY (`ownerId`) REFERENCES `users` (`numericId`) ON DELETE SET NULL
+  CONSTRAINT `FK_nft_instance_ownerId` FOREIGN KEY (`ownerId`) REFERENCES `users` (`userId`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='NFT实例表';

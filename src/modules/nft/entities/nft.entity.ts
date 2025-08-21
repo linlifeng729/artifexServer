@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { NFT_STATUS_VALUES, NFT_CONSTRAINTS, NftStatus } from '@/modules/nft/constants';
 
 /**
  * NFT实体
@@ -11,7 +12,7 @@ export class Nft {
 
   @Column({ 
     type: 'varchar', 
-    length: 100, 
+    length: NFT_CONSTRAINTS.NAME_MAX_LENGTH, 
     nullable: false, 
     comment: 'NFT名称' 
   })
@@ -19,7 +20,7 @@ export class Nft {
 
   @Column({ 
     type: 'varchar', 
-    length: 500, 
+    length: NFT_CONSTRAINTS.IMAGE_URL_MAX_LENGTH, 
     nullable: false, 
     comment: 'NFT图片URL' 
   })
@@ -27,7 +28,7 @@ export class Nft {
 
   @Column({ 
     type: 'varchar', 
-    length: 100, 
+    length: NFT_CONSTRAINTS.TYPE_MAX_LENGTH, 
     nullable: false, 
     comment: 'NFT类型' 
   })
@@ -35,11 +36,11 @@ export class Nft {
 
   @Column({ 
     type: 'enum', 
-    enum: ['active', 'inactive'], 
+    enum: NFT_STATUS_VALUES, 
     default: 'active',
     comment: 'NFT状态' 
   })
-  status: 'active' | 'inactive';
+  status: NftStatus;
 
   @CreateDateColumn({ 
     type: 'timestamp', 

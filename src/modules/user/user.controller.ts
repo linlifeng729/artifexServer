@@ -9,9 +9,11 @@ import {
   ParseIntPipe, 
   ParseUUIDPipe,
   HttpCode,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { UserService } from '@/modules/user/services/user.service';
 import { UpdateUserDto } from '@/modules/user/dto';
+import { USER_CONSTANTS } from '@/modules/user/constants';
 
 /**
  * 用户控制器
@@ -27,12 +29,14 @@ export class UserController {
    * 获取所有用户（分页）
    * 
    * @param page 页码，默认为1
-   * @param limit 每页数量，默认为10
+   * @param limit 每页数量，默认为10，最大100
    */
   @Get()
   async findAll(
-    @Query('page', ParseIntPipe) page: number = 1,
-    @Query('limit', ParseIntPipe) limit: number = 10,
+    @Query('page', new DefaultValuePipe(USER_CONSTANTS.PAGINATION.DEFAULT_PAGE), ParseIntPipe) 
+    page: number,
+    @Query('limit', new DefaultValuePipe(USER_CONSTANTS.PAGINATION.DEFAULT_LIMIT), ParseIntPipe) 
+    limit: number,
   ) {
     return await this.userService.findAll(page, limit);
   }

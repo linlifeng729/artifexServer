@@ -5,6 +5,7 @@ import { NftService } from '@/modules/nft/services/nft.service';
 import { Nft } from '@/modules/nft/entities/nft.entity';
 import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
 import { AdminOnlyGuard } from '@/modules/auth/guards/admin-only.guard';
+import { AuthModule } from '@/modules/auth/auth.module';
 
 /**
  * NFT模块
@@ -18,6 +19,8 @@ import { AdminOnlyGuard } from '@/modules/auth/guards/admin-only.guard';
   imports: [
     // 注册NFT实体，启用TypeORM功能
     TypeOrmModule.forFeature([Nft, NftInstance]),
+    // 导入认证模块，提供AuthService和JwtAuthGuard
+    AuthModule,
   ],
   controllers: [
     NftController,

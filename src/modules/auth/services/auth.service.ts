@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { SendVerificationCodeDto } from '@/modules/auth/dto/send-verificationcode.dto';
 import { UserService } from '@/modules/user/services/user.service';
 import { VerificationCodeService } from '@/modules/auth/services/verification-code.service';
 import { ResponseHelper, ApiResponse } from '@/common';
+import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
 
 @Injectable()
 export class AuthService {
@@ -15,14 +16,13 @@ export class AuthService {
   ) {}
 
   async login(loginDto: LoginDto): Promise<ApiResponse<{ user: any, token: string }>> {
-    const { phone, verificationCode } = loginDto;
+    const { phone, verificationCode: inputCode } = loginDto;
     
     // 验证验证码
-    const verifyResult = await this.verificationCodeService.verifyCode(phone, verificationCode);
+    const verifyResult = await this.verificationCodeService.verifyCode(phone, inputCode);
     
     if (!verifyResult.success || !verifyResult.data) {
-      // 抛出异常，让全局异常过滤器处理
-      throw new Error(verifyResult.message || '手机号或验证码错误');
+      throw new BadRequestException(verifyResult.message || AUTH_CONSTANTS.ERROR_MESSAGES.LOGIN_FAILED);
     }
 
     let user = verifyResult.data;
@@ -30,24 +30,34 @@ export class AuthService {
     // 检查用户是否已完成注册（通过role字段判断）
     if (!user.role) {
       try {
-        const updatedUser = await this.userService.completeUserRegistration(user.id);
-        user = updatedUser;
+        await this.userService.completeUserRegistration(user.id);
+        // 重新获取包含 userId 的完整用户信息
+        const fullUser = await this.userService.findByIdInternal(user.id);
+        if (!fullUser) {
+          throw new InternalServerErrorException(AUTH_CONSTANTS.ERROR_MESSAGES.USER_INFO_FETCH_FAILED);
+        }
+        user = fullUser;
       } catch (error) {
-        throw new Error('用户信息完善失败');
+        throw new InternalServerErrorException(AUTH_CONSTANTS.ERROR_MESSAGES.USER_REGISTRATION_FAILED);
       }
     }
 
+    // 根据用户角色设置token有效期
+    const expiresIn = user.role === AUTH_CONSTANTS.ROLES.ADMIN 
+      ? AUTH_CONSTANTS.JWT.ADMIN_EXPIRATION 
+      : AUTH_CONSTANTS.JWT.USER_EXPIRATION;
+
     // 生成JWT token
     const payload = { sub: user.id, phone: user.phone };
-    const token = await this.jwtService.signAsync(payload);
+    const token = await this.jwtService.signAsync(payload, { expiresIn });
 
-    // 返回不包含敏感字段的用户信息  
-    const { phoneHash: _, ...result } = user;
+    // 返回不包含敏感字段的用户信息（排除 userId、phoneHash 等内部字段）
+    const { userId, phoneHash, ...result } = user;
 
     return ResponseHelper.success({
       user: result,
       token
-    }, '登录成功');
+    }, AUTH_CONSTANTS.SUCCESS_MESSAGES.LOGIN_SUCCESS);
   }
 
   // 发送验证码
@@ -55,21 +65,30 @@ export class AuthService {
     return await this.verificationCodeService.sendVerificationCode(sendCodeDto.phone);
   }
 
-  // 验证JWT token
+  /**
+   * 验证JWT token并获取用户信息
+   * @param token JWT token
+   * @returns 用户信息
+   * @throws BadRequestException 当token无效时
+   * @throws InternalServerErrorException 当用户信息获取失败时
+   */
   async verifyToken(token: string) {
     try {
       const payload = await this.jwtService.verifyAsync(token);
       
-      // 根据 JWT payload 中的用户ID获取完整的用户信息
-      const user = await this.userService.findById(payload.sub);
+      // 根据 JWT payload 中的用户ID获取完整的用户信息（包含 userId 用于内部业务）
+      const user = await this.userService.findByIdInternal(payload.sub);
       
       if (!user) {
-        throw new Error('用户不存在或已被禁用');
+        throw new InternalServerErrorException(AUTH_CONSTANTS.ERROR_MESSAGES.USER_NOT_EXIST);
       }
       
       return user;
     } catch (error) {
-      throw new Error('Token无效或已过期');
+      if (error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      throw new BadRequestException(AUTH_CONSTANTS.ERROR_MESSAGES.TOKEN_INVALID);
     }
   }
 }

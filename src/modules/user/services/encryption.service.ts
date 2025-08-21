@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
+import { USER_CONSTANTS } from '@/modules/user/constants';
 
 /**
  * 加密服务
@@ -38,7 +39,10 @@ export class EncryptionService {
       encrypted += cipher.final('hex');
       return encrypted;
     } catch (error) {
-      throw new Error(`手机号加密失败: ${error.message}`);
+      throw new InternalServerErrorException(
+        USER_CONSTANTS.ERROR_MESSAGES.PHONE_ENCRYPTION_FAILED,
+        { cause: error }
+      );
     }
   }
 
@@ -54,7 +58,10 @@ export class EncryptionService {
       decrypted += decipher.final('utf8');
       return decrypted;
     } catch (error) {
-      throw new Error(`手机号解密失败: ${error.message}`);
+      throw new InternalServerErrorException(
+        USER_CONSTANTS.ERROR_MESSAGES.PHONE_DECRYPTION_FAILED,
+        { cause: error }
+      );
     }
   }
 
