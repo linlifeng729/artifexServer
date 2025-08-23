@@ -7,8 +7,10 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "target": "ES2023",
-    "sourceMap": false,
-    "outDir": "./server",
+    "sourceMap": true,
+    "inlineSourceMap": false,
+    "inlineSources": false,
+    "outDir": "./.output/server",
     "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"],
