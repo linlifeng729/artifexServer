@@ -56,29 +56,37 @@ export class NftInstancesController {
    * 获取NFT在售商品实例列表（公开访问）
    * 
    * @param status 可选的状态筛选参数，用于过滤NFT实例状态（available | sold | reserved）
-   * @returns Promise<ApiResponse<NftInstanceResponseDto[]>> NFT实例列表
+   * @param page 可选的页码参数，默认为1
+   * @param limit 可选的每页条数参数，默认为10
+   * @returns Promise<ApiResponse<any>> NFT实例分页列表
    */
   @Public()
   @Get()
   async findAllNftInstances(
     @Query('status') status?: NftInstanceStatus,
-  ): Promise<ApiResponse<NftInstanceResponseDto[]>> {
-    return await this.nftInstancesService.findAllNftInstances(status);
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<ApiResponse<any>> {
+    return await this.nftInstancesService.findAllNftInstances(status, page, limit);
   }
 
   /**
    * 获取当前用户登录在售商品实例列表（用户鉴权）
    * 
    * @param request HTTP请求对象，包含已认证的用户信息
-   * @returns Promise<ApiResponse<NftInstanceResponseDto[]>> 用户的NFT实例列表
+   * @param page 可选的页码参数，默认为1
+   * @param limit 可选的每页条数参数，默认为10
+   * @returns Promise<ApiResponse<any>> 用户的NFT实例分页列表
    */
   @Get('my')
   @UseGuards(JwtAuthGuard)
   async findMyNftInstances(
     @Request() request: any,
-  ): Promise<ApiResponse<NftInstanceResponseDto[]>> {
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<ApiResponse<any>> {
     const userId = request.user.userId;
-    return await this.nftInstancesService.findNftInstancesByOwner(userId);
+    return await this.nftInstancesService.findNftInstancesByOwner(userId, undefined, page, limit);
   }
 
   /**
@@ -99,13 +107,17 @@ export class NftInstancesController {
    * 获取某个类型下所有在售商品列表（公开访问）
    * 
    * @param nftTypeId NFT类型ID
-   * @returns Promise<ApiResponse<NftInstanceResponseDto[]>> 指定类型的NFT实例列表
+   * @param page 可选的页码参数，默认为1
+   * @param limit 可选的每页条数参数，默认为10
+   * @returns Promise<ApiResponse<any>> 指定类型的NFT实例分页列表
    */
   @Public()
   @Get('by-type/:nftTypeId')
   async findNftInstancesByType(
     @Param('nftTypeId', ParseIntPipe) nftTypeId: number,
-  ): Promise<ApiResponse<NftInstanceResponseDto[]>> {
-    return await this.nftInstancesService.findNftInstancesByType(nftTypeId);
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<ApiResponse<any>> {
+    return await this.nftInstancesService.findNftInstancesByType(nftTypeId, undefined, page, limit);
   }
 }

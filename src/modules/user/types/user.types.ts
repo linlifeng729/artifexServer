@@ -17,7 +17,7 @@ export type InternalUser = Omit<User, 'verificationCode' | 'verificationCodeExpi
  * 用户分页查询结果类型
  */
 export interface UserPaginatedResult {
-  items: PublicUser[];
+  list: PublicUser[];
   total: number;
   page: number;
   limit: number;

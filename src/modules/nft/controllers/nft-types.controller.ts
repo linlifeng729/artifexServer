@@ -29,7 +29,7 @@ import { NftStatus } from '@/modules/nft/constants';
  * - 管理NFT类型状态（管理员权限）
  */
 @Controller('api/nft')
-export class NftTypesController {
+export class NftTypesController {  
   constructor(
     private readonly nftTypesService: NftTypesService,
   ) {}
@@ -51,17 +51,21 @@ export class NftTypesController {
    * 获取NFT类型列表（公开访问）
    * 
    * @param status 可选的状态筛选参数，用于过滤NFT类型状态（active | inactive）
-   * @returns Promise<ApiResponse<NftResponseDto[]>> NFT类型列表
+   * @param page 可选的页码参数，默认为1
+   * @param limit 可选的每页条数参数，默认为10
+   * @returns Promise<ApiResponse<any>> NFT类型分页列表
    */
   @Public()
   @Get()
   async findAll(
     @Query('status') status?: NftStatus,
-  ): Promise<ApiResponse<NftResponseDto[]>> {
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ): Promise<ApiResponse<any>> {
     if (status) {
-      return await this.nftTypesService.findNftTypesByStatus(status);
+      return await this.nftTypesService.findNftTypesByStatus(status, page, limit);
     }
-    return await this.nftTypesService.findAllNftTypes();
+    return await this.nftTypesService.findAllNftTypes(page, limit);
   }
 
   /**

@@ -82,22 +82,29 @@ export class NftInstancesService {
     }
   }
 
-  /**
+    /**
    * 获取NFT实例列表
    * @param status 可选的状态筛选参数
-   * @returns Promise<ApiResponse<NftInstanceResponseDto[]>> NFT实例列表
+   * @param page 页码，默认为1
+   * @param limit 每页条数，默认为10
+   * @returns Promise<ApiResponse<分页结果>> NFT实例分页列表
    * @throws InternalServerErrorException 当数据库操作失败时
    */
   async findAllNftInstances(
-    status?: NftInstanceStatus
-  ): Promise<ApiResponse<NftInstanceResponseDto[]>> {
+    status?: NftInstanceStatus,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<ApiResponse<any>> {
     try {
       const whereCondition = status ? { status } : {};
+      const skip = (page - 1) * limit;
       
-      const nftInstances = await this.nftInstanceRepository.find({
+      const [nftInstances, total] = await this.nftInstanceRepository.findAndCount({
         where: whereCondition,
         relations: ['nft', 'owner'],
         order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
       });
 
       const nftInstanceResponses = nftInstances.map(instance => 
@@ -108,7 +115,13 @@ export class NftInstancesService {
         ? NFT_SUCCESS_MESSAGES.NFT_INSTANCE_LIST_BY_STATUS_FOUND(status)
         : NFT_SUCCESS_MESSAGES.NFT_INSTANCE_LIST_FOUND;
       
-      return ResponseHelper.success(nftInstanceResponses, message);
+      return ResponseHelper.paginated(
+        nftInstanceResponses,
+        total,
+        page,
+        limit,
+        message
+      );
     } catch (error) {
       throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_INSTANCE_LIST_QUERY_FAILED, error.message);
     }
@@ -148,22 +161,29 @@ export class NftInstancesService {
    * 根据用户ID获取用户发布的NFT实例列表
    * @param userId 用户ID
    * @param status 可选的状态筛选参数
-   * @returns Promise<ApiResponse<NftInstanceResponseDto[]>> 用户的NFT实例列表
+   * @param page 页码，默认为1
+   * @param limit 每页条数，默认为10
+   * @returns Promise<ApiResponse<any>> 用户的NFT实例分页列表
    * @throws InternalServerErrorException 当数据库操作失败时
    */
   async findNftInstancesByOwner(
     userId: number,
-    status?: NftInstanceStatus
-  ): Promise<ApiResponse<NftInstanceResponseDto[]>> {
+    status?: NftInstanceStatus,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<ApiResponse<any>> {
     try {
       const whereCondition = status 
         ? { ownerId: userId, status } 
         : { ownerId: userId };
+      const skip = (page - 1) * limit;
       
-      const nftInstances = await this.nftInstanceRepository.find({
+      const [nftInstances, total] = await this.nftInstanceRepository.findAndCount({
         where: whereCondition,
         relations: ['nft', 'owner'],
         order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
       });
 
       const nftInstanceResponses = nftInstances.map(instance => 
@@ -174,7 +194,13 @@ export class NftInstancesService {
         ? `用户状态为${status}的NFT商品列表查询成功`
         : '用户NFT商品列表查询成功';
       
-      return ResponseHelper.success(nftInstanceResponses, message);
+      return ResponseHelper.paginated(
+        nftInstanceResponses,
+        total,
+        page,
+        limit,
+        message
+      );
     } catch (error) {
       throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_INSTANCE_LIST_QUERY_FAILED, error.message);
     }
@@ -184,22 +210,29 @@ export class NftInstancesService {
    * 根据NFT类型ID获取实例列表
    * @param nftId NFT类型ID
    * @param status 可选的状态筛选参数
-   * @returns Promise<ApiResponse<NftInstanceResponseDto[]>> 指定NFT类型的实例列表
+   * @param page 页码，默认为1
+   * @param limit 每页条数，默认为10
+   * @returns Promise<ApiResponse<any>> 指定NFT类型的实例分页列表
    * @throws InternalServerErrorException 当数据库操作失败时
    */
   async findNftInstancesByType(
     nftId: number,
-    status?: NftInstanceStatus
-  ): Promise<ApiResponse<NftInstanceResponseDto[]>> {
+    status?: NftInstanceStatus,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<ApiResponse<any>> {
     try {
       const whereCondition = status 
         ? { nftId, status } 
         : { nftId };
+      const skip = (page - 1) * limit;
       
-      const nftInstances = await this.nftInstanceRepository.find({
+      const [nftInstances, total] = await this.nftInstanceRepository.findAndCount({
         where: whereCondition,
         relations: ['nft', 'owner'],
         order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
       });
 
       const nftInstanceResponses = nftInstances.map(instance => 
@@ -210,7 +243,13 @@ export class NftInstancesService {
         ? `NFT类型${nftId}状态为${status}的商品列表查询成功`
         : `NFT类型${nftId}的商品列表查询成功`;
       
-      return ResponseHelper.success(nftInstanceResponses, message);
+      return ResponseHelper.paginated(
+        nftInstanceResponses,
+        total,
+        page,
+        limit,
+        message
+      );
     } catch (error) {
       throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_INSTANCE_LIST_QUERY_FAILED, error.message);
     }
@@ -244,14 +283,14 @@ export class NftInstancesService {
       const updatedInstance = await this.nftInstanceRepository.save(nftInstance);
 
       const nftInstanceResponse = NftInstanceResponseDto.fromEntity(updatedInstance);
-      return ResponseHelper.success(nftInstanceResponse, `NFT实例状态更新为${newStatus}成功`);
+      return ResponseHelper.success(nftInstanceResponse, NFT_SUCCESS_MESSAGES.NFT_INSTANCE_STATUS_UPDATED(newStatus));
     } catch (error) {
       // 重新抛出已知的业务异常
       if (error instanceof NotFoundException) {
         throw error;
       }
       // 处理未知异常
-      throw new InternalServerErrorException('NFT实例状态更新失败', error.message);
+      throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_INSTANCE_STATUS_UPDATE_FAILED, error.message);
     }
   }
 }

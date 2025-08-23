@@ -47,6 +47,17 @@ export const NFT_CONSTRAINTS = {
 } as const;
 
 /**
+ * 分页相关限制
+ */
+export const PAGINATION_CONSTRAINTS = {
+  DEFAULT_PAGE: 1,
+  DEFAULT_LIMIT: 10,
+  MIN_PAGE: 1,
+  MIN_LIMIT: 1,
+  MAX_LIMIT: 100,
+} as const;
+
+/**
  * 错误消息常量
  */
 export const NFT_ERROR_MESSAGES = {
@@ -60,6 +71,7 @@ export const NFT_ERROR_MESSAGES = {
   NFT_INSTANCE_NOT_FOUND: 'NFT商品不存在',
   NFT_INSTANCE_CREATE_QUERY_FAILED: 'NFT实例创建后查询失败',
   NFT_INSTANCE_LIST_QUERY_FAILED: 'NFT商品列表查询失败，请稍后重试',
+  NFT_INSTANCE_STATUS_UPDATE_FAILED: 'NFT实例状态更新失败',
   
   // 验证错误消息
   VALIDATION: {
@@ -86,6 +98,13 @@ export const NFT_ERROR_MESSAGES = {
     STATUS_INVALID: '状态值无效',
     NFT_STATUS_INVALID: `NFT状态只能是${NFT_STATUS_VALUES.join('或')}`,
     NFT_INSTANCE_STATUS_INVALID: `NFT实例状态只能是${NFT_INSTANCE_STATUS_VALUES.join('、')}`,
+    
+    // 分页验证错误消息
+    PAGE_POSITIVE: '页码必须为正整数',
+    PAGE_MIN: `页码最小值为${PAGINATION_CONSTRAINTS.MIN_PAGE}`,
+    LIMIT_POSITIVE: '每页条数必须为正整数',
+    LIMIT_MIN: `每页条数最小值为${PAGINATION_CONSTRAINTS.MIN_LIMIT}`,
+    LIMIT_MAX: `每页条数最大值为${PAGINATION_CONSTRAINTS.MAX_LIMIT}`,
   },
 } as const;
 
@@ -104,4 +123,5 @@ export const NFT_SUCCESS_MESSAGES = {
   NFT_INSTANCE_FOUND: 'NFT商品详情查询成功',
   NFT_INSTANCE_LIST_FOUND: 'NFT商品列表查询成功',
   NFT_INSTANCE_LIST_BY_STATUS_FOUND: (status: string) => `状态为${status}的NFT商品列表查询成功`,
+  NFT_INSTANCE_STATUS_UPDATED: (status: string) => `NFT实例状态更新为${status}成功`,
 } as const;

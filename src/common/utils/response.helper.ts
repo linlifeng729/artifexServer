@@ -33,13 +33,13 @@ export class ResponseHelper {
    * 创建分页响应
    */
   static paginated<T>(
-    items: T[],
+    list: T[],
     total: number,
     page: number,
     limit: number,
     message: string = '查询成功'
   ): ApiResponse<{
-    items: T[];
+    list: T[];
     total: number;
     page: number;
     limit: number;
@@ -47,7 +47,7 @@ export class ResponseHelper {
   }> {
     return this.success(
       {
-        items,
+        list,
         total,
         page,
         limit,

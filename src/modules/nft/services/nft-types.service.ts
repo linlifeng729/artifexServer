@@ -99,17 +99,29 @@ export class NftTypesService {
 
   /**
    * 获取所有NFT类型列表
-   * @returns Promise<ApiResponse<NftResponseDto[]>> NFT类型列表
+   * @param page 页码，默认为1
+   * @param limit 每页条数，默认为10
+   * @returns Promise<ApiResponse<any>> NFT类型分页列表
    * @throws InternalServerErrorException 当数据库操作失败时
    */
-  async findAllNftTypes(): Promise<ApiResponse<NftResponseDto[]>> {
+  async findAllNftTypes(page: number = 1, limit: number = 10): Promise<ApiResponse<any>> {
     try {
-      const nfts = await this.nftRepository.find({
+      const skip = (page - 1) * limit;
+      
+      const [nfts, total] = await this.nftRepository.findAndCount({
         order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
       });
 
       const nftResponses = nfts.map(nft => NftResponseDto.fromEntity(nft));
-      return ResponseHelper.success(nftResponses, NFT_SUCCESS_MESSAGES.NFT_LIST_FOUND);
+      return ResponseHelper.paginated(
+        nftResponses,
+        total,
+        page,
+        limit,
+        NFT_SUCCESS_MESSAGES.NFT_LIST_FOUND
+      );
     } catch (error) {
       throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_LIST_QUERY_FAILED, error.message);
     }
@@ -118,19 +130,28 @@ export class NftTypesService {
   /**
    * 根据状态获取NFT类型列表
    * @param status NFT状态
-   * @returns Promise<ApiResponse<NftResponseDto[]>> 指定状态的NFT类型列表
+   * @param page 页码，默认为1
+   * @param limit 每页条数，默认为10
+   * @returns Promise<ApiResponse<any>> 指定状态的NFT类型分页列表
    * @throws InternalServerErrorException 当数据库操作失败时
    */
-  async findNftTypesByStatus(status: NftStatus): Promise<ApiResponse<NftResponseDto[]>> {
+  async findNftTypesByStatus(status: NftStatus, page: number = 1, limit: number = 10): Promise<ApiResponse<any>> {
     try {
-      const nfts = await this.nftRepository.find({
+      const skip = (page - 1) * limit;
+      
+      const [nfts, total] = await this.nftRepository.findAndCount({
         where: { status },
         order: { createdAt: 'DESC' },
+        skip,
+        take: limit,
       });
 
       const nftResponses = nfts.map(nft => NftResponseDto.fromEntity(nft));
-      return ResponseHelper.success(
-        nftResponses, 
+      return ResponseHelper.paginated(
+        nftResponses,
+        total,
+        page,
+        limit,
         NFT_SUCCESS_MESSAGES.NFT_LIST_BY_STATUS_FOUND(status)
       );
     } catch (error) {

@@ -60,7 +60,7 @@ export class UserPaginatedResponseDto {
   /**
    * 用户列表
    */
-  items: UserResponseDto[];
+  list: UserResponseDto[];
 
   /**
    * 总数量
@@ -83,13 +83,13 @@ export class UserPaginatedResponseDto {
   totalPages: number;
 
   constructor(data: {
-    items: any[];
+    list: any[];
     total: number;
     page: number;
     limit: number;
     totalPages: number;
   }) {
-    this.items = data.items.map(user => new UserResponseDto(user));
+    this.list = data.list.map(user => new UserResponseDto(user));
     this.total = data.total;
     this.page = data.page;
     this.limit = data.limit;
