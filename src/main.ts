@@ -4,7 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: ['log', 'error', 'warn', 'debug'], // 启用所有日志级别，包括debug
+    logger: ['log', 'error', 'warn'],
   });
   
   // 配置全局验证管道

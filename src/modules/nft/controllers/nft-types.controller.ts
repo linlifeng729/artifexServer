@@ -65,15 +65,10 @@ export class NftTypesController {
     @Query('status') status?: NftStatus,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
-  ): Promise<ApiResponse<any>> {
-    this.logger.log(`Query parameters - status: ${status}, page: ${page}, limit: ${limit}`);
-    
-    if (status) {
-      this.logger.log(`Filtering NFT types by status: ${status}`);
+  ): Promise<ApiResponse<any>> {    
+    if (status) {      
       return await this.nftTypesService.findNftTypesByStatus(status, page, limit);
-    }
-    
-    this.logger.log('No status filter applied, fetching all NFT types');
+    }    
     return await this.nftTypesService.findAllNftTypes(page, limit);
   }
 

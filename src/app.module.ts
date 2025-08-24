@@ -11,7 +11,9 @@ import { AuthModule } from '@/modules/auth/auth.module';
 import { NftModule } from '@/modules/nft/nft.module';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt.guard';
 import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
+import { LoggingInterceptor } from '@/common/interceptors/logging.interceptor';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
+import { LoggingService } from '@/common/services/logging.service';
 import { User } from '@/modules/user/entities/user.entity';
 import { Nft } from '@/modules/nft/entities/nft.entity';
 import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
@@ -69,10 +71,16 @@ import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
 
   providers: [
     Logger,
+    LoggingService,
     // 全局 JWT 认证守卫
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // 全局日志拦截器（必须在响应拦截器之前）
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
     // 全局响应拦截器
     {
