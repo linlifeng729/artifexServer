@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import * as tencentcloud from 'tencentcloud-sdk-nodejs';
 import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
 import { LoggingService } from '@/common/services/logging.service';
+import { ResponseHelper, ApiResponse } from '@/common';
 
 // 导入对应产品模块的client models
 const SmsClient = tencentcloud.sms.v20210111.Client;
@@ -22,9 +23,7 @@ export interface TencentSmsConfig {
   region: string;
 }
 
-export interface SmsResult {
-  success: boolean;
-  message: string;
+export interface SmsData {
   requestId?: string;
   error?: any;
 }
@@ -60,7 +59,7 @@ export class TencentSmsService {
     const missingConfigs = requiredConfigs.filter(key => !this.configService.get<string>(key));
     
     if (missingConfigs.length > 0) {
-      this.loggingService.error(`腾讯云短信配置缺失: ${missingConfigs.join(', ')}`);
+      this.loggingService.error('腾讯云短信配置缺失: ', missingConfigs.join(','));
       throw new InternalServerErrorException('短信服务配置不完整');
     }
 
@@ -107,7 +106,7 @@ export class TencentSmsService {
    * @param code 验证码
    * @returns 发送结果
    */
-  async sendVerificationCode(phone: string, code: string): Promise<SmsResult> {
+  async sendVerificationCode(phone: string, code: string): Promise<ApiResponse<SmsData>> {
     try {
       // 确保手机号包含国际区号
       const formattedPhone = phone.startsWith('+') ? phone : `${AUTH_CONSTANTS.PHONE.INTERNATIONAL_PREFIX}${phone}`;
@@ -125,8 +124,6 @@ export class TencentSmsService {
         TemplateParamSet: [code, AUTH_CONSTANTS.SMS.TEMPLATE_PARAMS.EXPIRATION_MINUTES],
       };
 
-      this.loggingService.log(`准备发送短信到 ${phone}，验证码: ${code}`);
-
       const response = await this.smsClient.SendSms(params);
       
       this.loggingService.log('腾讯云短信发送响应:', JSON.stringify(response));
@@ -136,35 +133,30 @@ export class TencentSmsService {
         const sendStatus = response.SendStatusSet[0];
         
         if (sendStatus.Code === 'Ok') {
-          return {
-            success: true,
-            message: '短信发送成功',
-            requestId: response.RequestId
-          };
+          return ResponseHelper.success(
+            { requestId: response.RequestId },
+            '短信发送成功'
+          );
         } else {
-          this.loggingService.error(`短信发送失败 - Code: ${sendStatus.Code}, Message: ${sendStatus.Message}`);
-          return {
-            success: false,
-            message: `短信发送失败: ${sendStatus.Message}`,
-            requestId: response.RequestId,
-            error: sendStatus
-          };
+          this.loggingService.error(`短信发送失败 Code: ${sendStatus.Code}, Message: ${sendStatus.Message}`, response.RequestId);
+          return ResponseHelper.error(
+            `短信发送失败: ${sendStatus.Message}`,
+            { requestId: response.RequestId, error: sendStatus }
+          );
         }
       } else {
-        this.loggingService.error('短信发送响应格式异常');
-        return {
-          success: false,
-          message: '短信发送响应格式异常',
-          requestId: response.RequestId
-        };
+        this.loggingService.error('短信发送响应格式异常', response.RequestId);
+        return ResponseHelper.error(
+          '短信发送响应格式异常',
+          { requestId: response.RequestId }
+        );
       }
     } catch (error) {
       this.loggingService.error('短信发送异常:', error);
-      return {
-        success: false,
-        message: '短信发送异常，请稍后重试',
-        error
-      };
+      return ResponseHelper.error(
+        '短信发送异常，请稍后重试',
+        { error }
+      );
     }
   }
 }
