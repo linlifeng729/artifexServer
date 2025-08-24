@@ -7,6 +7,8 @@ import {
   Query,
   ParseIntPipe,
   UseGuards,
+  Logger,
+  Inject,
 } from '@nestjs/common';
 import { NftTypesService } from '@/modules/nft/services/nft-types.service';
 import { CreateNftDto } from '@/modules/nft/dto/create-nft.dto';
@@ -32,6 +34,8 @@ import { NftStatus } from '@/modules/nft/constants';
 export class NftTypesController {  
   constructor(
     private readonly nftTypesService: NftTypesService,
+    @Inject(Logger)
+    private readonly logger: Logger,
   ) {}
 
   /**
@@ -62,9 +66,14 @@ export class NftTypesController {
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ): Promise<ApiResponse<any>> {
+    this.logger.log(`Query parameters - status: ${status}, page: ${page}, limit: ${limit}`);
+    
     if (status) {
+      this.logger.log(`Filtering NFT types by status: ${status}`);
       return await this.nftTypesService.findNftTypesByStatus(status, page, limit);
     }
+    
+    this.logger.log('No status filter applied, fetching all NFT types');
     return await this.nftTypesService.findAllNftTypes(page, limit);
   }
 

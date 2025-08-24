@@ -1,15 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@/app.module';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['log', 'error', 'warn', 'debug'], // 启用所有日志级别，包括debug
   });
-  
-  // 配置全局 Logger
-  const globalLogger = new Logger();
-  app.useLogger(globalLogger);
   
   // 配置全局验证管道
   app.useGlobalPipes(new ValidationPipe({

@@ -68,7 +68,6 @@ import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
   ],
 
   providers: [
-    // 全局 Logger
     Logger,
     // 全局 JWT 认证守卫
     {
