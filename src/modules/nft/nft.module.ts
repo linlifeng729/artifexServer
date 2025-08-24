@@ -1,4 +1,4 @@
-import { Module, Logger } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { NftTypesController } from '@/modules/nft/controllers/nft-types.controller';
 import { NftInstancesController } from '@/modules/nft/controllers/nft-instances.controller';
@@ -42,7 +42,6 @@ import { AuthModule } from '@/modules/auth/auth.module';
     NftTypesService,
     NftInstancesService,
     AdminOnlyGuard,
-    Logger,
   ],
   exports: [
     NftTypesService,

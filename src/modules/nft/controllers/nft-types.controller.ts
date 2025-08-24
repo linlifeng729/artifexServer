@@ -7,8 +7,6 @@ import {
   Query,
   ParseIntPipe,
   UseGuards,
-  Logger,
-  Inject,
 } from '@nestjs/common';
 import { NftTypesService } from '@/modules/nft/services/nft-types.service';
 import { CreateNftDto } from '@/modules/nft/dto/create-nft.dto';
@@ -18,6 +16,7 @@ import { AdminOnlyGuard } from '@/modules/auth/guards/admin-only.guard';
 import { Public } from '@/modules/auth/decorators/public.decorator';
 import { ApiResponse } from '@/common';
 import { NftStatus } from '@/modules/nft/constants';
+import { LoggingService } from '@/common/services/logging.service';
 
 /**
  * NFT类型控制器
@@ -34,8 +33,7 @@ import { NftStatus } from '@/modules/nft/constants';
 export class NftTypesController {  
   constructor(
     private readonly nftTypesService: NftTypesService,
-    @Inject(Logger)
-    private readonly logger: Logger,
+    private readonly loggingService: LoggingService,
   ) {}
 
   /**

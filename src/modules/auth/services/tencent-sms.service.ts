@@ -1,7 +1,8 @@
-import { Injectable, Logger, Inject, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as tencentcloud from 'tencentcloud-sdk-nodejs';
 import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
+import { LoggingService } from '@/common/services/logging.service';
 
 // 导入对应产品模块的client models
 const SmsClient = tencentcloud.sms.v20210111.Client;
@@ -35,8 +36,7 @@ export class TencentSmsService {
 
   constructor(
     private configService: ConfigService,
-    @Inject(Logger)
-    private readonly logger: Logger,
+    private readonly loggingService: LoggingService,
   ) {
     this.smsConfig = this.getSmsConfig();
     this.initSmsClient();
@@ -60,7 +60,7 @@ export class TencentSmsService {
     const missingConfigs = requiredConfigs.filter(key => !this.configService.get<string>(key));
     
     if (missingConfigs.length > 0) {
-      this.logger.error(`腾讯云短信配置缺失: ${missingConfigs.join(', ')}`);
+      this.loggingService.error(`腾讯云短信配置缺失: ${missingConfigs.join(', ')}`);
       throw new InternalServerErrorException('短信服务配置不完整');
     }
 
@@ -94,9 +94,9 @@ export class TencentSmsService {
       };
 
       this.smsClient = new SmsClient(clientConfig);
-      this.logger.log('腾讯云短信客户端初始化成功');
+      this.loggingService.log('腾讯云短信客户端初始化成功');
     } catch (error) {
-      this.logger.error('腾讯云短信客户端初始化失败:', error);
+      this.loggingService.error('腾讯云短信客户端初始化失败:', error);
       throw new Error('短信服务初始化失败');
     }
   }
@@ -125,11 +125,11 @@ export class TencentSmsService {
         TemplateParamSet: [code, AUTH_CONSTANTS.SMS.TEMPLATE_PARAMS.EXPIRATION_MINUTES],
       };
 
-      this.logger.log(`准备发送短信到 ${phone}，验证码: ${code}`);
+      this.loggingService.log(`准备发送短信到 ${phone}，验证码: ${code}`);
 
       const response = await this.smsClient.SendSms(params);
       
-      this.logger.log('腾讯云短信发送响应:', JSON.stringify(response, null, 2));
+      this.loggingService.log('腾讯云短信发送响应:', JSON.stringify(response));
 
       // 检查发送结果
       if (response.SendStatusSet && response.SendStatusSet.length > 0) {
@@ -142,7 +142,7 @@ export class TencentSmsService {
             requestId: response.RequestId
           };
         } else {
-          this.logger.error(`短信发送失败 - Code: ${sendStatus.Code}, Message: ${sendStatus.Message}`);
+          this.loggingService.error(`短信发送失败 - Code: ${sendStatus.Code}, Message: ${sendStatus.Message}`);
           return {
             success: false,
             message: `短信发送失败: ${sendStatus.Message}`,
@@ -151,7 +151,7 @@ export class TencentSmsService {
           };
         }
       } else {
-        this.logger.error('短信发送响应格式异常');
+        this.loggingService.error('短信发送响应格式异常');
         return {
           success: false,
           message: '短信发送响应格式异常',
@@ -159,7 +159,7 @@ export class TencentSmsService {
         };
       }
     } catch (error) {
-      this.logger.error('短信发送异常:', error);
+      this.loggingService.error('短信发送异常:', error);
       return {
         success: false,
         message: '短信发送异常，请稍后重试',

@@ -1,4 +1,4 @@
-import { Module, Logger } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from '@/modules/auth/auth.controller';
 import { AuthService } from '@/modules/auth/services/auth.service';
@@ -18,7 +18,7 @@ import { User } from '@/modules/user/entities/user.entity';
     UserModule, // 导入用户模块以使用用户服务
   ],
   controllers: [AuthController],
-  providers: [AuthService, VerificationCodeService, TencentSmsService, JwtAuthGuard, Logger],
+  providers: [AuthService, VerificationCodeService, TencentSmsService, JwtAuthGuard],
   exports: [AuthService, VerificationCodeService, JwtAuthGuard], // 导出供其他模块使用
 })
 export class AuthModule {}

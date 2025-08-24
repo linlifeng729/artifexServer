@@ -5,6 +5,7 @@ import { Nft } from '@/modules/nft/entities/nft.entity';
 import { CreateNftDto } from '@/modules/nft/dto/create-nft.dto';
 import { NftResponseDto } from '@/modules/nft/dto/nft-response.dto';
 import { ResponseHelper, ApiResponse } from '@/common';
+import { LoggingService } from '@/common/services/logging.service';
 import { 
   NFT_STATUS, 
   NFT_ERROR_MESSAGES, 
@@ -26,6 +27,7 @@ export class NftTypesService {
   constructor(
     @InjectRepository(Nft)
     private readonly nftRepository: Repository<Nft>,
+    private readonly loggingService: LoggingService,
   ) {}
 
   /**

@@ -6,6 +6,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 
 import { AppController } from '@/app.controller';
+import { CommonModule } from '@/common/common.module';
 import { UserModule } from '@/modules/user/user.module';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { NftModule } from '@/modules/nft/nft.module';
@@ -13,7 +14,6 @@ import { JwtAuthGuard } from '@/modules/auth/guards/jwt.guard';
 import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
 import { LoggingInterceptor } from '@/common/interceptors/logging.interceptor';
 import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
-import { LoggingService } from '@/common/services/logging.service';
 import { User } from '@/modules/user/entities/user.entity';
 import { Nft } from '@/modules/nft/entities/nft.entity';
 import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
@@ -59,6 +59,9 @@ import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
       }),
     }),
 
+    // 通用模块
+    CommonModule,
+
     // 业务模块
     UserModule,
     AuthModule,
@@ -71,7 +74,6 @@ import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
 
   providers: [
     Logger,
-    LoggingService,
     // 全局 JWT 认证守卫
     {
       provide: APP_GUARD,
