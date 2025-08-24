@@ -1,15 +1,14 @@
 import { Injectable, ConflictException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Nft } from '@/modules/nft/entities/nft.entity';
 import { CreateNftDto } from '@/modules/nft/dto/create-nft.dto';
 import { NftResponseDto } from '@/modules/nft/dto/nft-response.dto';
+import { QueryNftTypesDto } from '@/modules/nft/dto/query-nft-types.dto';
 import { ResponseHelper, ApiResponse } from '@/common';
 import { LoggingService } from '@/common/services/logging.service';
 import { 
   NFT_STATUS, 
-  NFT_ERROR_MESSAGES, 
-  NFT_SUCCESS_MESSAGES,
   NftStatus
 } from '@/modules/nft/constants';
 
@@ -45,7 +44,7 @@ export class NftTypesService {
       });
 
       if (existingNft) {
-        throw new ConflictException(NFT_ERROR_MESSAGES.NFT_NAME_EXISTS);
+        throw new ConflictException('NFT名称已存在');
       }
 
       // 创建新的NFT实体
@@ -61,14 +60,14 @@ export class NftTypesService {
 
       // 返回响应DTO
       const nftResponse = NftResponseDto.fromEntity(savedNft);
-      return ResponseHelper.success(nftResponse, NFT_SUCCESS_MESSAGES.NFT_CREATED);
+      return ResponseHelper.success(nftResponse, 'NFT创建成功');
     } catch (error) {
       // 重新抛出已知的业务异常
       if (error instanceof ConflictException) {
         throw error;
       }
       // 处理未知异常
-      throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_LIST_QUERY_FAILED, error.message);
+      throw new InternalServerErrorException('NFT创建失败，请稍后重试', error.message);
     }
   }
 
@@ -84,80 +83,82 @@ export class NftTypesService {
       const nft = await this.nftRepository.findOne({ where: { id } });
       
       if (!nft) {
-        throw new NotFoundException(NFT_ERROR_MESSAGES.NFT_NOT_FOUND);
+        throw new NotFoundException('NFT不存在');
       }
 
       const nftResponse = NftResponseDto.fromEntity(nft);
-      return ResponseHelper.success(nftResponse, NFT_SUCCESS_MESSAGES.NFT_FOUND);
+      return ResponseHelper.success(nftResponse, 'NFT查询成功');
     } catch (error) {
       // 重新抛出已知的业务异常
       if (error instanceof NotFoundException) {
         throw error;
       }
       // 处理未知异常
-      throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_LIST_QUERY_FAILED, error.message);
+      throw new InternalServerErrorException('NFT列表查询失败，请稍后重试', error.message);
     }
   }
 
   /**
-   * 获取所有NFT类型列表
-   * @param page 页码，默认为1
-   * @param limit 每页条数，默认为10
+   * NFT类型查询方法
+   * 支持多种过滤条件的组合查询
+   * @param queryDto 查询条件DTO
    * @returns Promise<ApiResponse<any>> NFT类型分页列表
    * @throws InternalServerErrorException 当数据库操作失败时
    */
-  async findAllNftTypes(page: number = 1, limit: number = 10): Promise<ApiResponse<any>> {
+  async queryNftTypes(queryDto: QueryNftTypesDto): Promise<ApiResponse<{ 
+    list: NftResponseDto[], 
+    total: number, 
+    page: number, 
+    limit: number,
+    totalPages: number
+  }>> {
     try {
+      const { status, name, type, page, limit } = queryDto;
       const skip = (page - 1) * limit;
-      
-      const [nfts, total] = await this.nftRepository.findAndCount({
-        order: { createdAt: 'DESC' },
-        skip,
-        take: limit,
-      });
 
+      // 构建查询条件
+      const queryBuilder: SelectQueryBuilder<Nft> = this.nftRepository
+        .createQueryBuilder('nft')
+        .orderBy('nft.createdAt', 'DESC');
+
+      // 添加状态过滤
+      if (status) {
+        queryBuilder.andWhere('nft.status = :status', { status });
+      }
+
+      // 添加名称模糊搜索
+      if (name) {
+        queryBuilder.andWhere('nft.name LIKE :name', { name: `%${name}%` });
+      }
+
+      // 添加类型过滤
+      if (type) {
+        queryBuilder.andWhere('nft.type = :type', { type });
+      }
+
+      // 应用分页
+      queryBuilder.skip(skip).take(limit);
+
+      // 执行查询
+      const [nfts, total] = await queryBuilder.getManyAndCount();
+
+      // 转换为响应DTO
       const nftResponses = nfts.map(nft => NftResponseDto.fromEntity(nft));
+
+      // 构建成功消息
+      const message = status 
+        ? `状态为${status}的NFT列表查询成功`
+        : 'NFT列表查询成功';
+
       return ResponseHelper.paginated(
         nftResponses,
         total,
         page,
         limit,
-        NFT_SUCCESS_MESSAGES.NFT_LIST_FOUND
+        message
       );
     } catch (error) {
-      throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_LIST_QUERY_FAILED, error.message);
-    }
-  }
-
-  /**
-   * 根据状态获取NFT类型列表
-   * @param status NFT状态
-   * @param page 页码，默认为1
-   * @param limit 每页条数，默认为10
-   * @returns Promise<ApiResponse<any>> 指定状态的NFT类型分页列表
-   * @throws InternalServerErrorException 当数据库操作失败时
-   */
-  async findNftTypesByStatus(status: NftStatus, page: number = 1, limit: number = 10): Promise<ApiResponse<any>> {
-    try {
-      const skip = (page - 1) * limit;
-      
-      const [nfts, total] = await this.nftRepository.findAndCount({
-        where: { status },
-        order: { createdAt: 'DESC' },
-        skip,
-        take: limit,
-      });
-
-      const nftResponses = nfts.map(nft => NftResponseDto.fromEntity(nft));
-      return ResponseHelper.paginated(
-        nftResponses,
-        total,
-        page,
-        limit,
-        NFT_SUCCESS_MESSAGES.NFT_LIST_BY_STATUS_FOUND(status)
-      );
-    } catch (error) {
-      throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_LIST_QUERY_FAILED, error.message);
+      throw new InternalServerErrorException('NFT列表查询失败，请稍后重试', error.message);
     }
   }
 
@@ -173,7 +174,7 @@ export class NftTypesService {
     });
 
     if (!nft) {
-      throw new NotFoundException(NFT_ERROR_MESSAGES.NFT_TYPE_NOT_FOUND_OR_INACTIVE);
+      throw new NotFoundException('NFT类型不存在或已下架');
     }
 
     return nft;

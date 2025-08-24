@@ -31,19 +31,19 @@ export class UserService {
       });
       
       if (!user) {
-        throw new NotFoundException(USER_CONSTANTS.ERROR_MESSAGES.USER_NOT_FOUND);
+        throw new NotFoundException('用户不存在');
       }
 
       // 解密手机号并返回（排除敏感字段）
       const userData = this._getUserWithDecryptedPhone(user);
       
-      return ResponseHelper.success(userData, USER_CONSTANTS.SUCCESS_MESSAGES.USER_FOUND);
+      return ResponseHelper.success(userData, '用户查询成功');
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
       throw new InternalServerErrorException(
-        USER_CONSTANTS.ERROR_MESSAGES.USER_QUERY_FAILED,
+        '用户查询失败，请稍后重试',
         { cause: error }
       );
     }
@@ -62,7 +62,7 @@ export class UserService {
       });
       
       if (!user) {
-        throw new NotFoundException(USER_CONSTANTS.ERROR_MESSAGES.USER_NOT_FOUND);
+        throw new NotFoundException('用户不存在');
       }
 
       // 检查用户是否已经完成注册
@@ -88,7 +88,7 @@ export class UserService {
         throw error;
       }
       throw new InternalServerErrorException(
-        USER_CONSTANTS.ERROR_MESSAGES.USER_REGISTRATION_FAILED,
+        '用户注册完善失败，请稍后重试',
         { cause: error }
       );
     }
@@ -107,7 +107,7 @@ export class UserService {
       };
     } catch (error) {
       throw new InternalServerErrorException(
-        USER_CONSTANTS.ERROR_MESSAGES.USER_DECRYPT_FAILED,
+        '用户数据解密失败',
         { cause: error }
       );
     }
@@ -125,7 +125,7 @@ export class UserService {
       });
     } catch (error) {
       throw new InternalServerErrorException(
-        USER_CONSTANTS.ERROR_MESSAGES.USER_QUERY_FAILED,
+        '用户查询失败，请稍后重试',
         { cause: error }
       );
     }
@@ -143,7 +143,7 @@ export class UserService {
       });
       
       if (!user) {
-        throw new NotFoundException(USER_CONSTANTS.ERROR_MESSAGES.USER_NOT_FOUND);
+        throw new NotFoundException('用户不存在');
       }
 
       // 如果要更新手机号，需要加密处理
@@ -158,13 +158,13 @@ export class UserService {
 
       // 获取更新后的用户信息
       const userResult = await this.findById(id);
-      return ResponseHelper.success(userResult.data, USER_CONSTANTS.SUCCESS_MESSAGES.USER_UPDATED);
+      return ResponseHelper.success(userResult.data, '用户更新成功');
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
       throw new InternalServerErrorException(
-        USER_CONSTANTS.ERROR_MESSAGES.USER_UPDATE_FAILED,
+        '用户更新失败，请稍后重试',
         { cause: error }
       );
     }
@@ -182,7 +182,7 @@ export class UserService {
       });
       
       if (!user) {
-        throw new NotFoundException(USER_CONSTANTS.ERROR_MESSAGES.USER_NOT_FOUND);
+        throw new NotFoundException('用户不存在');
       }
 
       const result = await this.userRepository.update(id, { isActive: false });
@@ -191,11 +191,11 @@ export class UserService {
       if (success) {
         return ResponseHelper.success(
           { deleted: true }, 
-          USER_CONSTANTS.SUCCESS_MESSAGES.USER_DELETED
+          '用户删除成功'
         );
       } else {
         return ResponseHelper.error(
-          USER_CONSTANTS.ERROR_MESSAGES.USER_DELETE_FAILED, 
+          '用户删除失败，请稍后重试', 
           { deleted: false }
         );
       }
@@ -204,7 +204,7 @@ export class UserService {
         throw error;
       }
       throw new InternalServerErrorException(
-        USER_CONSTANTS.ERROR_MESSAGES.USER_DELETE_FAILED,
+        '用户删除失败，请稍后重试',
         { cause: error }
       );
     }
@@ -237,11 +237,11 @@ export class UserService {
         total, 
         page, 
         safeLimit, 
-        USER_CONSTANTS.SUCCESS_MESSAGES.USER_LIST_FOUND
+        '用户列表查询成功'
       );
     } catch (error) {
       throw new InternalServerErrorException(
-        USER_CONSTANTS.ERROR_MESSAGES.USER_QUERY_FAILED,
+        '用户查询失败，请稍后重试',
         { cause: error }
       );
     }

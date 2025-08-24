@@ -7,8 +7,6 @@ import { NftInstanceResponseDto } from '@/modules/nft/dto/nft-instance-response.
 import { ResponseHelper, ApiResponse } from '@/common';
 import { 
   NFT_INSTANCE_STATUS, 
-  NFT_ERROR_MESSAGES, 
-  NFT_SUCCESS_MESSAGES,
   NftInstanceStatus
 } from '@/modules/nft/constants';
 import { NftTypesService } from './nft-types.service';
@@ -66,19 +64,19 @@ export class NftInstancesService {
       });
 
       if (!nftInstanceWithRelations) {
-        throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_INSTANCE_CREATE_QUERY_FAILED);
+        throw new InternalServerErrorException('NFT实例创建后查询失败');
       }
 
       // 返回响应DTO
       const nftInstanceResponse = NftInstanceResponseDto.fromEntity(nftInstanceWithRelations);
-      return ResponseHelper.success(nftInstanceResponse, NFT_SUCCESS_MESSAGES.NFT_INSTANCE_CREATED);
+      return ResponseHelper.success(nftInstanceResponse, 'NFT商品发布成功');
     } catch (error) {
       // 重新抛出已知的业务异常
       if (error instanceof NotFoundException || error instanceof InternalServerErrorException) {
         throw error;
       }
       // 处理未知异常
-      throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_INSTANCE_LIST_QUERY_FAILED, error.message);
+      throw new InternalServerErrorException('NFT商品列表查询失败，请稍后重试', error.message);
     }
   }
 
@@ -112,8 +110,8 @@ export class NftInstancesService {
       );
       
       const message = status 
-        ? NFT_SUCCESS_MESSAGES.NFT_INSTANCE_LIST_BY_STATUS_FOUND(status)
-        : NFT_SUCCESS_MESSAGES.NFT_INSTANCE_LIST_FOUND;
+        ? `状态为${status}的NFT商品列表查询成功`
+        : 'NFT商品列表查询成功';
       
       return ResponseHelper.paginated(
         nftInstanceResponses,
@@ -123,7 +121,7 @@ export class NftInstancesService {
         message
       );
     } catch (error) {
-      throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_INSTANCE_LIST_QUERY_FAILED, error.message);
+      throw new InternalServerErrorException('NFT商品列表查询失败，请稍后重试', error.message);
     }
   }
 
@@ -142,18 +140,18 @@ export class NftInstancesService {
       });
 
       if (!nftInstance) {
-        throw new NotFoundException(NFT_ERROR_MESSAGES.NFT_INSTANCE_NOT_FOUND);
+        throw new NotFoundException('NFT商品不存在');
       }
 
       const nftInstanceResponse = NftInstanceResponseDto.fromEntity(nftInstance);
-      return ResponseHelper.success(nftInstanceResponse, NFT_SUCCESS_MESSAGES.NFT_INSTANCE_FOUND);
+      return ResponseHelper.success(nftInstanceResponse, 'NFT商品详情查询成功');
     } catch (error) {
       // 重新抛出已知的业务异常
       if (error instanceof NotFoundException) {
         throw error;
       }
       // 处理未知异常
-      throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_INSTANCE_LIST_QUERY_FAILED, error.message);
+      throw new InternalServerErrorException('NFT商品列表查询失败，请稍后重试', error.message);
     }
   }
 
@@ -202,7 +200,7 @@ export class NftInstancesService {
         message
       );
     } catch (error) {
-      throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_INSTANCE_LIST_QUERY_FAILED, error.message);
+      throw new InternalServerErrorException('NFT商品列表查询失败，请稍后重试', error.message);
     }
   }
 
@@ -251,7 +249,7 @@ export class NftInstancesService {
         message
       );
     } catch (error) {
-      throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_INSTANCE_LIST_QUERY_FAILED, error.message);
+      throw new InternalServerErrorException('NFT商品列表查询失败，请稍后重试', error.message);
     }
   }
 
@@ -275,7 +273,7 @@ export class NftInstancesService {
       });
 
       if (!nftInstance) {
-        throw new NotFoundException(NFT_ERROR_MESSAGES.NFT_INSTANCE_NOT_FOUND);
+        throw new NotFoundException('NFT商品不存在');
       }
 
       // 更新状态
@@ -283,14 +281,14 @@ export class NftInstancesService {
       const updatedInstance = await this.nftInstanceRepository.save(nftInstance);
 
       const nftInstanceResponse = NftInstanceResponseDto.fromEntity(updatedInstance);
-      return ResponseHelper.success(nftInstanceResponse, NFT_SUCCESS_MESSAGES.NFT_INSTANCE_STATUS_UPDATED(newStatus));
+      return ResponseHelper.success(nftInstanceResponse, `NFT实例状态更新为${newStatus}成功`);
     } catch (error) {
       // 重新抛出已知的业务异常
       if (error instanceof NotFoundException) {
         throw error;
       }
       // 处理未知异常
-      throw new InternalServerErrorException(NFT_ERROR_MESSAGES.NFT_INSTANCE_STATUS_UPDATE_FAILED, error.message);
+      throw new InternalServerErrorException('NFT实例状态更新失败', error.message);
     }
   }
 }

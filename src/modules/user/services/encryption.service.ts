@@ -40,7 +40,7 @@ export class EncryptionService {
       return encrypted;
     } catch (error) {
       throw new InternalServerErrorException(
-        USER_CONSTANTS.ERROR_MESSAGES.PHONE_ENCRYPTION_FAILED,
+        '手机号加密失败',
         { cause: error }
       );
     }
@@ -59,7 +59,7 @@ export class EncryptionService {
       return decrypted;
     } catch (error) {
       throw new InternalServerErrorException(
-        USER_CONSTANTS.ERROR_MESSAGES.PHONE_DECRYPTION_FAILED,
+        '手机号解密失败',
         { cause: error }
       );
     }

@@ -48,7 +48,7 @@ export class VerificationCodeService {
         const timeDiff = Date.now() - user.lastCodeSentAt.getTime();
         if (timeDiff < intervalMs) {
           const remainingTime = Math.ceil((intervalMs - timeDiff) / 1000);
-          const message = AUTH_CONSTANTS.ERROR_MESSAGES.SMS_SEND_TOO_FREQUENT.replace('{seconds}', remainingTime.toString());
+          const message = `请等待${remainingTime}秒后再重新发送验证码`;
           throw new BadRequestException(message);
         }
       }
@@ -86,21 +86,21 @@ export class VerificationCodeService {
         const smsResult = await this.tencentSmsService.sendVerificationCode(phone, verificationCode);
         
         if (!smsResult.success) {
-          throw new InternalServerErrorException(smsResult.message || AUTH_CONSTANTS.ERROR_MESSAGES.SMS_SEND_FAILED);
+          throw new InternalServerErrorException(smsResult.message || '验证码发送失败，请稍后重试');
         }
       } catch (error) {
         if (error instanceof BadRequestException || error instanceof InternalServerErrorException) {
           throw error;
         }
-        throw new InternalServerErrorException(AUTH_CONSTANTS.ERROR_MESSAGES.SMS_SEND_FAILED);
+        throw new InternalServerErrorException('验证码发送失败，请稍后重试');
       }
 
-      return ResponseHelper.success(true, AUTH_CONSTANTS.SUCCESS_MESSAGES.CODE_SENT);
+      return ResponseHelper.success(true, '验证码发送成功');
     } catch (error) {
       if (error instanceof BadRequestException || error instanceof InternalServerErrorException) {
         throw error;
       }
-      throw new InternalServerErrorException(AUTH_CONSTANTS.ERROR_MESSAGES.SMS_SEND_FAILED);
+      throw new InternalServerErrorException('验证码发送失败，请稍后重试');
     }
   }
 
@@ -120,11 +120,11 @@ export class VerificationCodeService {
         });
 
         if (!user) {
-          return ResponseHelper.error(AUTH_CONSTANTS.ERROR_MESSAGES.USER_NOT_EXIST, null);
+          return ResponseHelper.error('用户不存在', null);
         }
 
         if (!user.verificationCode) {
-          return ResponseHelper.error(AUTH_CONSTANTS.ERROR_MESSAGES.CODE_NOT_EXIST, null);
+          return ResponseHelper.error('请先获取验证码', null);
         }
 
         // 检查验证码是否过期
@@ -134,12 +134,12 @@ export class VerificationCodeService {
             verificationCode: () => 'NULL',
             verificationCodeExpiredAt: () => 'NULL'
           });
-          return ResponseHelper.error(AUTH_CONSTANTS.ERROR_MESSAGES.CODE_EXPIRED, null);
+          return ResponseHelper.error('验证码已过期，请重新获取', null);
         }
 
         // 验证验证码
         if (user.verificationCode !== code) {
-          return ResponseHelper.error(AUTH_CONSTANTS.ERROR_MESSAGES.CODE_WRONG, null);
+          return ResponseHelper.error('验证码错误', null);
         }
 
         // 验证成功，立即清除验证码（在同一事务中）
@@ -151,7 +151,7 @@ export class VerificationCodeService {
         // 返回用户信息（不包含敏感字段）
         const { verificationCode, verificationCodeExpiredAt, ...result } = user;
         
-        return ResponseHelper.success(result, AUTH_CONSTANTS.SUCCESS_MESSAGES.CODE_VERIFIED);
+        return ResponseHelper.success(result, '验证码验证成功');
       } catch (error) {
         return ResponseHelper.error('验证失败，请稍后重试', null);
       }

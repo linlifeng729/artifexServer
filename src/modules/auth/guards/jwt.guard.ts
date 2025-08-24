@@ -63,7 +63,7 @@ export class JwtAuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      throw new UnauthorizedException(AUTH_CONSTANTS.ERROR_MESSAGES.TOKEN_MISSING);
+      throw new UnauthorizedException('访问令牌缺失');
     }
 
     try {
@@ -74,7 +74,7 @@ export class JwtAuthGuard implements CanActivate {
       request.user = user;
       return true;
     } catch (error) {
-      throw new UnauthorizedException(AUTH_CONSTANTS.ERROR_MESSAGES.TOKEN_INVALID);
+      throw new UnauthorizedException('无效的访问令牌');
     }
   }
 

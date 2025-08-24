@@ -39,32 +39,6 @@ export const AUTH_CONSTANTS = {
       EXPIRATION_MINUTES: '5',
     },
   },
-  
-  // 错误消息
-  ERROR_MESSAGES: {
-    PHONE_INVALID: '请输入正确的手机号格式',
-    CODE_INVALID: '验证码必须是6位数字',
-    CODE_EXPIRED: '验证码已过期，请重新获取',
-    CODE_WRONG: '验证码错误',
-    CODE_NOT_EXIST: '请先获取验证码',
-    USER_NOT_EXIST: '用户不存在',
-    TOKEN_INVALID: '无效的访问令牌',
-    TOKEN_MISSING: '访问令牌缺失',
-    PERMISSION_DENIED: '权限不足，请联系管理员',
-    USER_INFO_MISSING: '用户信息缺失',
-    SMS_SEND_FAILED: '验证码发送失败，请稍后重试',
-    SMS_SEND_TOO_FREQUENT: '请等待{seconds}秒后再重新发送验证码',
-    LOGIN_FAILED: '手机号或验证码错误',
-    USER_REGISTRATION_FAILED: '用户信息完善失败',
-    USER_INFO_FETCH_FAILED: '用户信息获取失败',
-  },
-  
-  // 成功消息
-  SUCCESS_MESSAGES: {
-    LOGIN_SUCCESS: '登录成功',
-    CODE_SENT: '验证码发送成功',
-    CODE_VERIFIED: '验证码验证成功',
-  },
 } as const;
 
 // 导出类型以便 TypeScript 类型检查

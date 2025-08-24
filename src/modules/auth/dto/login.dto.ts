@@ -7,13 +7,13 @@ import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
  */
 export class LoginDto {
   @IsString({ message: '手机号必须是字符串' })
-  @Matches(AUTH_CONSTANTS.PHONE.REGEX, { message: AUTH_CONSTANTS.ERROR_MESSAGES.PHONE_INVALID })
+  @Matches(AUTH_CONSTANTS.PHONE.REGEX, { message: '请输入正确的手机号格式' })
   phone: string;
 
   @IsString({ message: '验证码必须是字符串' })
   @Length(AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH, AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH, { 
-    message: AUTH_CONSTANTS.ERROR_MESSAGES.CODE_INVALID 
+    message: '验证码必须是6位数字' 
   })
-  @Matches(/^\d{6}$/, { message: AUTH_CONSTANTS.ERROR_MESSAGES.CODE_INVALID })
+  @Matches(/^\d{6}$/, { message: '验证码必须是6位数字' })
   verificationCode: string;
 }

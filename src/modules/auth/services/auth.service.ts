@@ -22,7 +22,7 @@ export class AuthService {
     const verifyResult = await this.verificationCodeService.verifyCode(phone, inputCode);
     
     if (!verifyResult.success || !verifyResult.data) {
-      throw new BadRequestException(verifyResult.message || AUTH_CONSTANTS.ERROR_MESSAGES.LOGIN_FAILED);
+      throw new BadRequestException(verifyResult.message || '手机号或验证码错误');
     }
 
     let user = verifyResult.data;
@@ -34,11 +34,11 @@ export class AuthService {
         // 重新获取包含 userId 的完整用户信息
         const fullUser = await this.userService.findByIdInternal(user.id);
         if (!fullUser) {
-          throw new InternalServerErrorException(AUTH_CONSTANTS.ERROR_MESSAGES.USER_INFO_FETCH_FAILED);
+          throw new InternalServerErrorException('用户信息获取失败');
         }
         user = fullUser;
       } catch (error) {
-        throw new InternalServerErrorException(AUTH_CONSTANTS.ERROR_MESSAGES.USER_REGISTRATION_FAILED);
+        throw new InternalServerErrorException('用户信息完善失败');
       }
     }
 
@@ -57,7 +57,7 @@ export class AuthService {
     return ResponseHelper.success({
       user: result,
       token
-    }, AUTH_CONSTANTS.SUCCESS_MESSAGES.LOGIN_SUCCESS);
+    }, '登录成功');
   }
 
   // 发送验证码
@@ -80,7 +80,7 @@ export class AuthService {
       const user = await this.userService.findByIdInternal(payload.sub);
       
       if (!user) {
-        throw new InternalServerErrorException(AUTH_CONSTANTS.ERROR_MESSAGES.USER_NOT_EXIST);
+        throw new InternalServerErrorException('用户不存在');
       }
       
       return user;
@@ -88,7 +88,7 @@ export class AuthService {
       if (error instanceof InternalServerErrorException) {
         throw error;
       }
-      throw new BadRequestException(AUTH_CONSTANTS.ERROR_MESSAGES.TOKEN_INVALID);
+      throw new BadRequestException('无效的访问令牌');
     }
   }
 }

@@ -57,12 +57,12 @@ export class AdminOnlyGuard implements CanActivate {
 
     // 检查用户是否存在
     if (!user) {
-      throw new ForbiddenException(AUTH_CONSTANTS.ERROR_MESSAGES.USER_INFO_MISSING);
+      throw new ForbiddenException('用户信息缺失');
     }
     
     // 检查用户角色是否为管理员
     if (user.role !== AUTH_CONSTANTS.ROLES.ADMIN) {
-      throw new ForbiddenException(AUTH_CONSTANTS.ERROR_MESSAGES.PERMISSION_DENIED);
+      throw new ForbiddenException('权限不足，请联系管理员');
     }
 
     return true;

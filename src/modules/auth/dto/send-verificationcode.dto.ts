@@ -7,6 +7,6 @@ import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
  */
 export class SendVerificationCodeDto {
   @IsString({ message: '手机号必须是字符串' })
-  @Matches(AUTH_CONSTANTS.PHONE.REGEX, { message: AUTH_CONSTANTS.ERROR_MESSAGES.PHONE_INVALID })
+  @Matches(AUTH_CONSTANTS.PHONE.REGEX, { message: '请输入正确的手机号格式' })
   phone: string;
 }
