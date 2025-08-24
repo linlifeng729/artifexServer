@@ -36,12 +36,12 @@ export class LoggingInterceptor implements NestInterceptor {
       tap((data) => {
         // 记录成功响应
         const responseTime = Date.now() - startTime;
-        this.loggingService.logResponse(request, response, responseTime, requestId);
+        this.loggingService.logResponse(request, response, responseTime, requestId, data);
       }),
       catchError((error) => {
         // 记录错误响应
         const responseTime = Date.now() - startTime;
-        this.loggingService.logError(request, response, responseTime, error, requestId);
+        this.loggingService.logError(request, response, responseTime, error, requestId, error.response || error.data);
         throw error;
       }),
     );

@@ -27,7 +27,7 @@ import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
     ConfigModule.forRoot({
       isGlobal: true,
       ignoreEnvFile: false,
-      envFilePath: ['.env'],
+      envFilePath: ['.env.development', '.env'],
     }),
 
     // 定时任务模块

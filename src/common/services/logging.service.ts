@@ -35,6 +35,7 @@ export interface ResponseLogInfo {
   url: string;
   statusCode: number;
   responseTime: number;
+  responseBody?: any;
   timestamp: string;
   requestId?: string;
 }
@@ -47,6 +48,7 @@ export interface ErrorLogInfo {
   url: string;
   statusCode: number;
   responseTime: number;
+  responseBody?: any;
   error: {
     name: string;
     message: string;
@@ -64,17 +66,18 @@ export interface ErrorLogInfo {
 export class LoggingService implements LoggerService {
   private readonly logger = new Logger('HTTP');
   private readonly config: any;
+  private readonly configValueConstant: string = 'true';
 
   constructor(private readonly configService: ConfigService) {
     this.config = {
       // 详细信息记录配置
-      logRequestBody: this.configService.get<boolean>('LOG_REQUEST_BODY', false),
-      logResponseBody: this.configService.get<boolean>('LOG_RESPONSE_BODY', false),
-      logRequestHeaders: this.configService.get<boolean>('LOG_REQUEST_HEADERS', false),
-      logQueryParams: this.configService.get<boolean>('LOG_QUERY_PARAMS', false),
+      logRequestBody: this.configService.get<string>('LOG_REQUEST_BODY') === this.configValueConstant,
+      logResponseBody: this.configService.get<string>('LOG_RESPONSE_BODY') === this.configValueConstant,
+      logRequestHeaders: this.configService.get<string>('LOG_REQUEST_HEADERS') === this.configValueConstant,
+      logQueryParams: this.configService.get<string>('LOG_QUERY_PARAMS') === this.configValueConstant,
 
       // 性能监控配置
-      performanceThreshold: this.configService.get<number>('PERFORMANCE_THRESHOLD', 2000),
+      performanceThreshold: parseInt(this.configService.get<string>('PERFORMANCE_THRESHOLD')!),
 
       // 敏感字段脱敏
       sensitiveFields: this.configService.get<string>('LOG_SENSITIVE_FIELDS')!.split(','),
@@ -106,12 +109,13 @@ export class LoggingService implements LoggerService {
   /**
    * 记录成功响应日志
    */
-  logResponse(request: Request, response: Response, responseTime: number, requestId?: string): void {
+  logResponse(request: Request, response: Response, responseTime: number, requestId?: string, responseBody?: any): void {
     const logInfo: ResponseLogInfo = {
       method: request.method,
       url: request.url,
       statusCode: response.statusCode,
       responseTime,
+      responseBody: this.config.logResponseBody && responseBody && Object.keys(responseBody).length > 0 ? this.sanitizeBody(responseBody) : undefined,
       timestamp: new Date().toISOString(),
       requestId: requestId,
     };
@@ -133,12 +137,13 @@ export class LoggingService implements LoggerService {
   /**
    * 记录错误响应日志
    */
-  logError(request: Request, response: Response, responseTime: number, error: any, requestId?: string): void {
+  logError(request: Request, response: Response, responseTime: number, error: any, requestId?: string, responseBody?: any): void {
     const logInfo: ErrorLogInfo = {
       method: request.method,
       url: request.url,
       statusCode: error.status || 500,
       responseTime,
+      responseBody: this.config.logResponseBody && responseBody && Object.keys(responseBody).length > 0 ? this.sanitizeBody(responseBody) : undefined,
       error: {
         name: error.name,
         message: error.message,
