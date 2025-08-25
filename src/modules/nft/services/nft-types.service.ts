@@ -1,6 +1,6 @@
 import { Injectable, ConflictException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Nft } from '@/modules/nft/entities/nft.entity';
 import { CreateNftDto } from '@/modules/nft/dto/create-nft.dto';
 import { NftResponseDto } from '@/modules/nft/dto/nft-response.dto';
@@ -9,7 +9,8 @@ import { ResponseHelper, ApiResponse } from '@/common';
 import { LoggingService } from '@/common/services/logging.service';
 import { 
   NFT_STATUS, 
-  NftStatus
+  NFT_INSTANCE_STATUS,
+  PAGINATION_CONSTRAINTS
 } from '@/modules/nft/constants';
 
 /**
@@ -94,13 +95,16 @@ export class NftTypesService {
         throw error;
       }
       // 处理未知异常
-      throw new InternalServerErrorException('NFT列表查询失败，请稍后重试', error.message);
+      throw new InternalServerErrorException('NFT查询失败，请稍后重试', error.message);
     }
   }
 
   /**
    * 查询NFT类型列表
    * 支持多种过滤条件的组合查询
+   * 包含每个NFT类型的可售数量和最低价格信息
+   * 使用单次JOIN查询
+   * 
    * @param queryDto 查询条件DTO
    * @returns Promise<ApiResponse<any>> NFT类型分页列表
    * @throws InternalServerErrorException 当数据库操作失败时
@@ -113,37 +117,53 @@ export class NftTypesService {
     totalPages: number
   }>> {
     try {
-      const { status, name, type, page, limit } = queryDto;
+      const { status, name, type, page = PAGINATION_CONSTRAINTS.DEFAULT_PAGE, limit = PAGINATION_CONSTRAINTS.DEFAULT_LIMIT } = queryDto;
       const skip = (page - 1) * limit;
 
-      // 构建查询条件
-      const queryBuilder: SelectQueryBuilder<Nft> = this.nftRepository
+      // 单次JOIN查询
+      const queryBuilder = this.nftRepository
         .createQueryBuilder('nft')
+        .leftJoin(
+          'nft.instances', 
+          'instance', 
+          'instance.status = :availableStatus'
+        )
+        .addSelect([
+          'COUNT(DISTINCT instance.id) as availableCount',
+          'MIN(instance.price) as minPrice'
+        ])
+        .setParameter('availableStatus', NFT_INSTANCE_STATUS.AVAILABLE)
+        .groupBy('nft.id')
         .orderBy('nft.createdAt', 'DESC');
 
       // 添加状态过滤
       if (status) {
-        queryBuilder.andWhere('nft.status = :status', { status });
+        queryBuilder.andWhere('nft.status = :nftStatus', { nftStatus: status });
       }
 
       // 添加名称模糊搜索
-      if (name) {
-        queryBuilder.andWhere('nft.name LIKE :name', { name: `%${name}%` });
+      if (name?.trim()) {
+        queryBuilder.andWhere('nft.name LIKE :searchName', { searchName: `%${name.trim()}%` });
       }
 
       // 添加类型过滤
-      if (type) {
-        queryBuilder.andWhere('nft.type = :type', { type });
+      if (type?.trim()) {
+        queryBuilder.andWhere('nft.type = :nftType', { nftType: type.trim() });
       }
 
       // 应用分页
       queryBuilder.skip(skip).take(limit);
 
       // 执行查询
-      const [nfts, total] = await queryBuilder.getManyAndCount();
+      const [nftsWithStats, total] = await Promise.all([
+        queryBuilder.getRawMany(),
+        this.getNftCount(queryDto)
+      ]);
 
-      // 转换为响应DTO
-      const nftResponses = nfts.map(nft => NftResponseDto.fromEntity(nft));
+      // 转换查询结果为响应DTO
+      const nftResponses = nftsWithStats.map((rawNft) => 
+        NftResponseDto.fromRawResult(rawNft)
+      );
 
       // 构建成功消息
       const message = status 
@@ -158,8 +178,39 @@ export class NftTypesService {
         message
       );
     } catch (error) {
+      // 记录详细错误信息
+      this.loggingService.error(`NFT列表查询失败: ${error.message}`, error.stack, 'NftTypesService');
       throw new InternalServerErrorException('NFT列表查询失败，请稍后重试', error.message);
     }
+  }
+
+  /**
+   * 获取NFT总数（用于分页）
+   * @param queryDto 查询条件DTO
+   * @returns Promise<number> NFT总数
+   */
+  private async getNftCount(queryDto: QueryNftTypesDto): Promise<number> {
+    const { status, name, type } = queryDto;
+    
+    const queryBuilder = this.nftRepository
+      .createQueryBuilder('nft');
+
+    // 添加状态过滤
+    if (status) {
+      queryBuilder.andWhere('nft.status = :nftStatus', { nftStatus: status });
+    }
+
+    // 添加名称模糊搜索
+    if (name?.trim()) {
+      queryBuilder.andWhere('nft.name LIKE :searchName', { searchName: `%${name.trim()}%` });
+    }
+
+    // 添加类型过滤
+    if (type?.trim()) {
+      queryBuilder.andWhere('nft.type = :nftType', { nftType: type.trim() });
+    }
+
+    return queryBuilder.getCount();
   }
 
   /**

@@ -68,7 +68,7 @@ export class JwtAuthGuard implements CanActivate {
 
     try {
       // 验证 JWT token
-      const user = await this.authService.verifyToken(token);
+      const user = await this.authService.validateToken(token);
       
       // 将用户信息附加到请求对象上，便于后续使用
       request.user = user;

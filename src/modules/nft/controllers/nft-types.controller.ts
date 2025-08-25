@@ -57,6 +57,8 @@ export class NftTypesController {
    * - page: 页码（默认为1）
    * - limit: 每页条数（默认为10，最大100）
    * 
+   * 包含每个NFT类型的可售数量和最低价格信息
+   * 
    * @param queryDto 查询条件DTO，自动验证和转换查询参数
    * @returns Promise<ApiResponse<{list: NftResponseDto[], total: number, page: number, limit: number, totalPages: number}>> NFT类型分页列表
    */
