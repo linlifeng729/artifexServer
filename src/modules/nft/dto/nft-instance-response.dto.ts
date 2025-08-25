@@ -8,8 +8,10 @@ import { NftStatus, NftInstanceStatus } from '@/modules/nft/constants';
 export class NftInstanceResponseDto {
   id: number;
   nftId: number;
+  nftNumber?: string;
   price: number;
   status: NftInstanceStatus;
+  remark?: string;
   createdAt: Date;
   updatedAt: Date;
   
@@ -37,8 +39,10 @@ export class NftInstanceResponseDto {
     const response = new NftInstanceResponseDto();
     response.id = nftInstance.id;
     response.nftId = nftInstance.nftId;
+    response.nftNumber = nftInstance.nftNumber;
     response.price = nftInstance.price;
     response.status = nftInstance.status;
+    response.remark = nftInstance.remark;
     response.createdAt = nftInstance.createdAt;
     response.updatedAt = nftInstance.updatedAt;
 

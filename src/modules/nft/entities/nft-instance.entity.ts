@@ -21,6 +21,15 @@ export class NftInstance {
   nftId: number;
 
   @Column({ 
+    name: 'nftNumber',
+    type: 'varchar', 
+    length: 50,
+    nullable: true, 
+    comment: 'NFT编号' 
+  })
+  nftNumber: string;
+
+  @Column({ 
     name: 'ownerId',
     type: 'int', 
     nullable: true, 
@@ -43,6 +52,13 @@ export class NftInstance {
     comment: '可售、已售、预留' 
   })
   status: NftInstanceStatus;
+
+  @Column({ 
+    type: 'text', 
+    nullable: true, 
+    comment: '备注信息' 
+  })
+  remark: string;
 
   @CreateDateColumn({ 
     type: 'timestamp', 

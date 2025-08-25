@@ -1,4 +1,4 @@
-import { IsInt, IsEnum, IsNotEmpty, Min, IsOptional } from 'class-validator';
+import { IsInt, IsEnum, IsNotEmpty, Min, IsOptional, IsString, MaxLength } from 'class-validator';
 import { 
   NFT_INSTANCE_STATUS_VALUES, 
   NFT_CONSTRAINTS,
@@ -14,6 +14,11 @@ export class CreateNftInstanceDto {
   @IsNotEmpty({ message: 'NFT类型ID不能为空' })
   nftId: number;
 
+  @IsOptional()
+  @IsString({ message: 'NFT编号必须是字符串' })
+  @MaxLength(50, { message: 'NFT编号长度不能超过50个字符' })
+  nftNumber?: string;
+
   @IsInt({ message: '价格必须是整数' })
   @IsNotEmpty({ message: '价格不能为空' })
   @Min(NFT_CONSTRAINTS.MIN_PRICE, { message: `价格必须大于${NFT_CONSTRAINTS.MIN_PRICE - 1}` })
@@ -24,4 +29,8 @@ export class CreateNftInstanceDto {
     message: `NFT实例状态只能是${NFT_INSTANCE_STATUS_VALUES.join('、')}` 
   })
   status?: NftInstanceStatus;
+
+  @IsOptional()
+  @IsString({ message: '备注必须是字符串' })
+  remark?: string;
 }

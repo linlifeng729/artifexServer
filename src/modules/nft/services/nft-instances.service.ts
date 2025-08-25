@@ -1,13 +1,15 @@
 import { Injectable, NotFoundException, InternalServerErrorException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ResponseHelper } from '@/common';
 import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
 import { CreateNftInstanceDto } from '@/modules/nft/dto/create-nft-instance.dto';
 import { NftInstanceResponseDto } from '@/modules/nft/dto/nft-instance-response.dto';
-import { ResponseHelper, ApiResponse } from '@/common';
-import { 
-  NFT_INSTANCE_STATUS, 
-  NftInstanceStatus
+import { ApiResponse } from '@/common';
+import {
+  NFT_INSTANCE_STATUS,
+  NFT_INSTANCE_STATUS_VALUES,
+  NftInstanceStatus,
 } from '@/modules/nft/constants';
 import { NftTypesService } from './nft-types.service';
 
@@ -49,9 +51,11 @@ export class NftInstancesService {
       // 创建新的NFT实例
       const nftInstance = this.nftInstanceRepository.create({
         nftId: createNftInstanceDto.nftId,
+        nftNumber: createNftInstanceDto.nftNumber,
         ownerId: userId,
         price: createNftInstanceDto.price,
         status: createNftInstanceDto.status || NFT_INSTANCE_STATUS.AVAILABLE,
+        remark: createNftInstanceDto.remark,
       });
 
       // 保存到数据库并立即查询关联数据（性能优化：单次查询）
@@ -81,18 +85,24 @@ export class NftInstancesService {
   }
 
     /**
-   * 获取NFT实例列表
-   * @param status 可选的状态筛选参数
-   * @param page 页码，默认为1
-   * @param limit 每页条数，默认为10
-   * @returns Promise<ApiResponse<分页结果>> NFT实例分页列表
-   * @throws InternalServerErrorException 当数据库操作失败时
+   * 获取在售商品实例列表（公开访问）
+   * 
+   * @param status 状态筛选（可选）
+   * @param page 页码
+   * @param limit 每页数量
+   * @returns Promise<ApiResponse<分页数据>> NFT实例列表
    */
   async getNftInstanceList(
     status?: NftInstanceStatus,
     page: number = 1,
     limit: number = 10
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<{
+    list: NftInstanceResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>> {
     try {
       const whereCondition = status ? { status } : {};
       const skip = (page - 1) * limit;
@@ -126,11 +136,10 @@ export class NftInstancesService {
   }
 
   /**
-   * 根据ID获取NFT实例详情
+   * 获取在售商品实例详情（公开访问）
+   * 
    * @param id NFT实例ID
-   * @returns Promise<ApiResponse<NftInstanceResponseDto>> NFT实例详情
-   * @throws NotFoundException 当NFT实例不存在时
-   * @throws InternalServerErrorException 当数据库操作失败时
+   * @returns Promise<ApiResponse<NftInstanceResponseDto>> NFT实例详情信息
    */
   async findNftInstanceById(id: number): Promise<ApiResponse<NftInstanceResponseDto>> {
     try {
@@ -156,20 +165,26 @@ export class NftInstancesService {
   }
 
   /**
-   * 根据用户ID获取用户发布的NFT实例列表
+   * 根据拥有者获取NFT实例列表（用户权限）
+   * 
    * @param userId 用户ID
-   * @param status 可选的状态筛选参数
-   * @param page 页码，默认为1
-   * @param limit 每页条数，默认为10
-   * @returns Promise<ApiResponse<any>> 用户的NFT实例分页列表
-   * @throws InternalServerErrorException 当数据库操作失败时
+   * @param status 状态筛选（可选）
+   * @param page 页码
+   * @param limit 每页数量
+   * @returns Promise<ApiResponse<分页数据>> NFT实例列表
    */
   async getNftInstanceListByOwner(
     userId: number,
     status?: NftInstanceStatus,
     page: number = 1,
     limit: number = 10
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<{
+    list: NftInstanceResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>> {
     try {
       const whereCondition = status 
         ? { ownerId: userId, status } 
@@ -205,20 +220,26 @@ export class NftInstancesService {
   }
 
   /**
-   * 根据NFT类型ID获取实例列表
+   * 根据NFT类型获取实例列表（公开访问）
+   * 
    * @param nftId NFT类型ID
-   * @param status 可选的状态筛选参数
-   * @param page 页码，默认为1
-   * @param limit 每页条数，默认为10
-   * @returns Promise<ApiResponse<any>> 指定NFT类型的实例分页列表
-   * @throws InternalServerErrorException 当数据库操作失败时
+   * @param status 状态筛选（可选）
+   * @param page 页码
+   * @param limit 每页数量
+   * @returns Promise<ApiResponse<分页数据>> NFT实例列表
    */
   async getNftInstanceListByType(
     nftId: number,
     status?: NftInstanceStatus,
     page: number = 1,
     limit: number = 10
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<{
+    list: NftInstanceResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }>> {
     try {
       const whereCondition = status 
         ? { nftId, status } 
@@ -250,45 +271,6 @@ export class NftInstancesService {
       );
     } catch (error) {
       throw new InternalServerErrorException('NFT商品列表查询失败，请稍后重试', error.message);
-    }
-  }
-
-  /**
-   * 更新NFT实例状态（内部方法，可用于交易等场景）
-   * @param instanceId NFT实例ID
-   * @param newStatus 新的状态
-   * @returns Promise<ApiResponse<NftInstanceResponseDto>> 更新后的NFT实例信息
-   * @throws NotFoundException 当NFT实例不存在时
-   * @throws InternalServerErrorException 当数据库操作失败时
-   */
-  async updateNftInstanceStatus(
-    instanceId: number, 
-    newStatus: NftInstanceStatus
-  ): Promise<ApiResponse<NftInstanceResponseDto>> {
-    try {
-      // 先检查实例是否存在
-      const nftInstance = await this.nftInstanceRepository.findOne({
-        where: { id: instanceId },
-        relations: ['nft', 'owner'],
-      });
-
-      if (!nftInstance) {
-        throw new NotFoundException('NFT商品不存在');
-      }
-
-      // 更新状态
-      nftInstance.status = newStatus;
-      const updatedInstance = await this.nftInstanceRepository.save(nftInstance);
-
-      const nftInstanceResponse = NftInstanceResponseDto.fromEntity(updatedInstance);
-      return ResponseHelper.success(nftInstanceResponse, `NFT实例状态更新为${newStatus}成功`);
-    } catch (error) {
-      // 重新抛出已知的业务异常
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      // 处理未知异常
-      throw new InternalServerErrorException('NFT实例状态更新失败', error.message);
     }
   }
 }
