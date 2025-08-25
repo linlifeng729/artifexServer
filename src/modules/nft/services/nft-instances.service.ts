@@ -44,7 +44,7 @@ export class NftInstancesService {
   ): Promise<ApiResponse<NftInstanceResponseDto>> {
     try {
       // 验证NFT类型是否存在且可用
-      await this.nftTypesService.validateNftTypeExists(createNftInstanceDto.nftId);
+      await this.nftTypesService._validateNftTypeExists(createNftInstanceDto.nftId);
 
       // 创建新的NFT实例
       const nftInstance = this.nftInstanceRepository.create({

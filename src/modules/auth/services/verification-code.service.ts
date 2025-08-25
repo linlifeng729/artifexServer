@@ -27,7 +27,7 @@ export class VerificationCodeService {
    * 生成验证码
    * @returns 返回指定长度的数字验证码
    */
-  private generateVerificationCode(): string {
+  private _generateVerificationCode(): string {
     const min = Math.pow(10, AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH - 1);
     const max = Math.pow(10, AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH) - 1;
     return Math.floor(min + Math.random() * (max - min + 1)).toString();
@@ -54,7 +54,7 @@ export class VerificationCodeService {
       }
 
       // 生成验证码和过期时间
-      const verificationCode = this.generateVerificationCode();
+      const verificationCode = this._generateVerificationCode();
       const expirationMs = AUTH_CONSTANTS.VERIFICATION_CODE.EXPIRATION_MINUTES * 60 * 1000;
       const expiredAt = new Date(Date.now() + expirationMs);
       const now = new Date();
@@ -83,7 +83,7 @@ export class VerificationCodeService {
 
       // 发送短信验证码
       try {
-        const smsResult = await this.tencentSmsService.sendVerificationCode(phone, verificationCode);
+        const smsResult = await this.tencentSmsService.sendSmsCode(phone, verificationCode);
         
         if (!smsResult.success) {
           throw new InternalServerErrorException(smsResult.message || '验证码发送失败，请稍后重试');

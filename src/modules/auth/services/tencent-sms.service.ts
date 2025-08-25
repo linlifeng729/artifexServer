@@ -37,15 +37,15 @@ export class TencentSmsService {
     private configService: ConfigService,
     private readonly loggingService: LoggingService,
   ) {
-    this.smsConfig = this.getSmsConfig();
-    this.initSmsClient();
+    this.smsConfig = this._getSmsConfig();
+    this._initSmsClient();
   }
 
   /**
    * 获取短信配置
    * @throws InternalServerErrorException 当配置缺失时抛出异常
    */
-  private getSmsConfig(): TencentSmsConfig {
+  private _getSmsConfig(): TencentSmsConfig {
     const requiredConfigs = [
       'TENCENT_SECRET_ID',
       'TENCENT_SECRET_KEY', 
@@ -76,7 +76,7 @@ export class TencentSmsService {
   /**
    * 初始化腾讯云短信客户端
    */
-  private initSmsClient(): void {
+  private _initSmsClient(): void {
     try {
       // 实例化一个认证对象
       const clientConfig = {

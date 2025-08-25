@@ -168,7 +168,7 @@ export class NftTypesService {
    * @returns Promise<Nft> NFT实体
    * @throws NotFoundException 当NFT类型不存在或已下架时
    */
-  async validateNftTypeExists(nftId: number): Promise<Nft> {
+  async _validateNftTypeExists(nftId: number): Promise<Nft> {
     const nft = await this.nftRepository.findOne({
       where: { id: nftId, status: NFT_STATUS.ACTIVE },
     });
