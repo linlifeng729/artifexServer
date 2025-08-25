@@ -23,7 +23,7 @@ export class UserService {
   /**
    * 根据ID查找用户（不包含敏感字段，返回解密后的手机号）
    */
-  async findById(id: string): Promise<ApiResponse<PublicUser | null>> {
+  async getUserById(id: string): Promise<ApiResponse<PublicUser | null>> {
     try {
       const user = await this.userRepository.findOne({
         where: { id, isActive: true },
@@ -53,7 +53,7 @@ export class UserService {
    * 完善用户注册信息（首次登录时调用）
    * 将临时用户转为正式用户
    */
-  async completeUserRegistration(userId: string, nickname?: string): Promise<PublicUser> {
+  async completeUserProfile(userId: string, nickname?: string): Promise<PublicUser> {
     try {
       // 查找用户
       const user = await this.userRepository.findOne({ 
@@ -117,7 +117,7 @@ export class UserService {
    * 内部方法：获取包含 userId 的完整用户信息（用于系统内部调用）
    * 仅用于认证和内部业务逻辑，不对外暴露
    */
-  async findByIdInternal(id: string): Promise<InternalUser | null> {
+  async getUserByIdInternal(id: string): Promise<InternalUser | null> {
     try {
       return await this.userRepository.findOne({
         where: { id, isActive: true },
@@ -134,7 +134,7 @@ export class UserService {
   /**
    * 更新用户信息
    */
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<ApiResponse<PublicUser | null>> {
+  async updateUser(id: string, updateUserDto: UpdateUserDto): Promise<ApiResponse<PublicUser | null>> {
     try {
       // 先检查用户是否存在
       const user = await this.userRepository.findOne({ 
@@ -157,7 +157,7 @@ export class UserService {
       await this.userRepository.update(id, updateData);
 
       // 获取更新后的用户信息
-      const userResult = await this.findById(id);
+      const userResult = await this.getUserById(id);
       return ResponseHelper.success(userResult.data, '用户更新成功');
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -173,7 +173,7 @@ export class UserService {
   /**
    * 软删除用户（设置 isActive 为 false）
    */
-  async softDelete(id: string): Promise<ApiResponse<UserDeleteResult>> {
+  async deleteUser(id: string): Promise<ApiResponse<UserDeleteResult>> {
     try {
       // 先检查用户是否存在
       const user = await this.userRepository.findOne({ 
@@ -213,7 +213,7 @@ export class UserService {
   /**
    * 获取所有用户（分页）
    */
-  async findAll(
+  async getUserList(
     page: number = USER_CONSTANTS.PAGINATION.DEFAULT_PAGE, 
     limit: number = USER_CONSTANTS.PAGINATION.DEFAULT_LIMIT
   ): Promise<ApiResponse<UserPaginatedResult>> {

@@ -62,12 +62,12 @@ export class NftInstancesController {
    */
   @Public()
   @Get()
-  async findAllNftInstances(
+  async getNftInstanceList(
     @Query('status') status?: NftInstanceStatus,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ): Promise<ApiResponse<any>> {
-    return await this.nftInstancesService.findAllNftInstances(status, page, limit);
+    return await this.nftInstancesService.getNftInstanceList(status, page, limit);
   }
 
   /**
@@ -80,13 +80,13 @@ export class NftInstancesController {
    */
   @Get('my')
   @UseGuards(JwtAuthGuard)
-  async findMyNftInstances(
+  async getMyNftInstanceList(
     @Request() request: any,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ): Promise<ApiResponse<any>> {
     const userId = request.user.userId;
-    return await this.nftInstancesService.findNftInstancesByOwner(userId, undefined, page, limit);
+    return await this.nftInstancesService.getNftInstanceListByOwner(userId, undefined, page, limit);
   }
 
   /**
@@ -97,7 +97,7 @@ export class NftInstancesController {
    */
   @Public()
   @Get(':id')
-  async findNftInstanceById(
+  async getNftInstanceById(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResponse<NftInstanceResponseDto>> {
     return await this.nftInstancesService.findNftInstanceById(id);
@@ -113,11 +113,11 @@ export class NftInstancesController {
    */
   @Public()
   @Get('by-type/:nftTypeId')
-  async findNftInstancesByType(
+  async getNftInstanceListByType(
     @Param('nftTypeId', ParseIntPipe) nftTypeId: number,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ): Promise<ApiResponse<any>> {
-    return await this.nftInstancesService.findNftInstancesByType(nftTypeId, undefined, page, limit);
+    return await this.nftInstancesService.getNftInstanceListByType(nftTypeId, undefined, page, limit);
   }
 }

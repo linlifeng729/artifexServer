@@ -106,7 +106,7 @@ export class TencentSmsService {
    * @param code 验证码
    * @returns 发送结果
    */
-  async sendVerificationCode(phone: string, code: string): Promise<ApiResponse<SmsData>> {
+  async sendSmsCode(phone: string, code: string): Promise<ApiResponse<SmsData>> {
     try {
       // 确保手机号包含国际区号
       const formattedPhone = phone.startsWith('+') ? phone : `${AUTH_CONSTANTS.PHONE.INTERNATIONAL_PREFIX}${phone}`;

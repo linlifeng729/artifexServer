@@ -62,7 +62,7 @@ export class NftTypesController {
    */
   @Public()
   @Get()
-  async findAll(
+  async getNftTypeList(
     @Query() queryDto: QueryNftTypesDto,
   ): Promise<ApiResponse<{ 
     list: NftResponseDto[], 
@@ -71,7 +71,7 @@ export class NftTypesController {
     limit: number,
     totalPages: number
   }>> {
-    return await this.nftTypesService.queryNftTypes(queryDto);
+    return await this.nftTypesService.getNftTypeList(queryDto);
   }
 
   /**
@@ -82,7 +82,7 @@ export class NftTypesController {
    */
   @Public()
   @Get(':id')
-  async findById(
+  async getNftTypeById(
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResponse<NftResponseDto>> {
     return await this.nftTypesService.findNftTypeById(id);

@@ -44,7 +44,7 @@ export class NftInstancesService {
   ): Promise<ApiResponse<NftInstanceResponseDto>> {
     try {
       // 验证NFT类型是否存在且可用
-      await this.nftTypesService.validateActiveNftType(createNftInstanceDto.nftId);
+      await this.nftTypesService.validateNftTypeExists(createNftInstanceDto.nftId);
 
       // 创建新的NFT实例
       const nftInstance = this.nftInstanceRepository.create({
@@ -88,7 +88,7 @@ export class NftInstancesService {
    * @returns Promise<ApiResponse<分页结果>> NFT实例分页列表
    * @throws InternalServerErrorException 当数据库操作失败时
    */
-  async findAllNftInstances(
+  async getNftInstanceList(
     status?: NftInstanceStatus,
     page: number = 1,
     limit: number = 10
@@ -164,7 +164,7 @@ export class NftInstancesService {
    * @returns Promise<ApiResponse<any>> 用户的NFT实例分页列表
    * @throws InternalServerErrorException 当数据库操作失败时
    */
-  async findNftInstancesByOwner(
+  async getNftInstanceListByOwner(
     userId: number,
     status?: NftInstanceStatus,
     page: number = 1,
@@ -213,7 +213,7 @@ export class NftInstancesService {
    * @returns Promise<ApiResponse<any>> 指定NFT类型的实例分页列表
    * @throws InternalServerErrorException 当数据库操作失败时
    */
-  async findNftInstancesByType(
+  async getNftInstanceListByType(
     nftId: number,
     status?: NftInstanceStatus,
     page: number = 1,

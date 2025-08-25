@@ -32,13 +32,13 @@ export class UserController {
    * @param limit 每页数量，默认为10，最大100
    */
   @Get()
-  async findAll(
+  async getUserList(
     @Query('page', new DefaultValuePipe(USER_CONSTANTS.PAGINATION.DEFAULT_PAGE), ParseIntPipe) 
     page: number,
     @Query('limit', new DefaultValuePipe(USER_CONSTANTS.PAGINATION.DEFAULT_LIMIT), ParseIntPipe) 
     limit: number,
   ) {
-    return await this.userService.findAll(page, limit);
+    return await this.userService.getUserList(page, limit);
   }
 
   /**
@@ -47,8 +47,8 @@ export class UserController {
    * @param id 用户的UUID标识符
    */
   @Get(':id')
-  async findById(@Param('id', ParseUUIDPipe) id: string) {
-    return await this.userService.findById(id);
+  async getUserById(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.userService.getUserById(id);
   }
 
   /**
@@ -58,11 +58,11 @@ export class UserController {
    * @param updateUserDto 更新用户信息的数据传输对象
    */
   @Put(':id')
-  async update(
+  async updateUser(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
-    return await this.userService.update(id, updateUserDto);
+    return await this.userService.updateUser(id, updateUserDto);
   }
 
   /**
@@ -72,7 +72,7 @@ export class UserController {
    */
   @Delete(':id')
   @HttpCode(204)
-  async remove(@Param('id', ParseUUIDPipe) id: string) {
-    return await this.userService.softDelete(id);
+  async deleteUser(@Param('id', ParseUUIDPipe) id: string) {
+    return await this.userService.deleteUser(id);
   }
 }

@@ -36,7 +36,7 @@ export class VerificationCodeService {
   /**
    * 发送验证码
    */
-  async sendVerificationCode(phone: string): Promise<ApiResponse<boolean>> {
+  async sendSmsCode(phone: string): Promise<ApiResponse<boolean>> {
     try {
       // 查找或创建用户记录
       const phoneHash = this.encryptionService.hashPhone(phone);

@@ -15,7 +15,7 @@ export class AuthService {
     private readonly verificationCodeService: VerificationCodeService,
   ) {}
 
-  async login(loginDto: LoginDto): Promise<ApiResponse<{ user: any, token: string }>> {
+  async userLogin(loginDto: LoginDto): Promise<ApiResponse<{ user: any, token: string }>> {
     const { phone, verificationCode: inputCode } = loginDto;
     
     // 验证验证码
@@ -30,9 +30,9 @@ export class AuthService {
     // 检查用户是否已完成注册（通过role字段判断）
     if (!user.role) {
       try {
-        await this.userService.completeUserRegistration(user.id);
+        await this.userService.completeUserProfile(user.id);
         // 重新获取包含 userId 的完整用户信息
-        const fullUser = await this.userService.findByIdInternal(user.id);
+        const fullUser = await this.userService.getUserByIdInternal(user.id);
         if (!fullUser) {
           throw new InternalServerErrorException('用户信息获取失败');
         }
@@ -61,8 +61,8 @@ export class AuthService {
   }
 
   // 发送验证码
-  async sendVerificationCode(sendCodeDto: SendVerificationCodeDto): Promise<ApiResponse<boolean>> {
-    return await this.verificationCodeService.sendVerificationCode(sendCodeDto.phone);
+  async sendSmsCode(sendCodeDto: SendVerificationCodeDto): Promise<ApiResponse<boolean>> {
+    return await this.verificationCodeService.sendSmsCode(sendCodeDto.phone);
   }
 
   /**
@@ -72,12 +72,12 @@ export class AuthService {
    * @throws BadRequestException 当token无效时
    * @throws InternalServerErrorException 当用户信息获取失败时
    */
-  async verifyToken(token: string) {
+  async validateToken(token: string) {
     try {
       const payload = await this.jwtService.verifyAsync(token);
       
       // 根据 JWT payload 中的用户ID获取完整的用户信息（包含 userId 用于内部业务）
-      const user = await this.userService.findByIdInternal(payload.sub);
+      const user = await this.userService.getUserByIdInternal(payload.sub);
       
       if (!user) {
         throw new InternalServerErrorException('用户不存在');

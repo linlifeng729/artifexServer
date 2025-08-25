@@ -22,8 +22,8 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(200)
-  async login(@Body() loginDto: LoginDto) {
-    return await this.authService.login(loginDto);
+  async userLogin(@Body() loginDto: LoginDto) {
+    return await this.authService.userLogin(loginDto);
   }
 
   /**
@@ -34,7 +34,7 @@ export class AuthController {
   @Public()
   @Post('send/verificationcode')
   @HttpCode(200)
-  async sendVerificationCode(@Body() sendCodeDto: SendVerificationCodeDto) {
-    return await this.authService.sendVerificationCode(sendCodeDto);
+  async sendSmsCode(@Body() sendCodeDto: SendVerificationCodeDto) {
+    return await this.authService.sendSmsCode(sendCodeDto);
   }
 }

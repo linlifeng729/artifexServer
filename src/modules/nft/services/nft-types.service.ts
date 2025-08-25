@@ -99,13 +99,13 @@ export class NftTypesService {
   }
 
   /**
-   * NFT类型查询方法
+   * 查询NFT类型列表
    * 支持多种过滤条件的组合查询
    * @param queryDto 查询条件DTO
    * @returns Promise<ApiResponse<any>> NFT类型分页列表
    * @throws InternalServerErrorException 当数据库操作失败时
    */
-  async queryNftTypes(queryDto: QueryNftTypesDto): Promise<ApiResponse<{ 
+  async getNftTypeList(queryDto: QueryNftTypesDto): Promise<ApiResponse<{ 
     list: NftResponseDto[], 
     total: number, 
     page: number, 
@@ -168,7 +168,7 @@ export class NftTypesService {
    * @returns Promise<Nft> NFT实体
    * @throws NotFoundException 当NFT类型不存在或已下架时
    */
-  async validateActiveNftType(nftId: number): Promise<Nft> {
+  async validateNftTypeExists(nftId: number): Promise<Nft> {
     const nft = await this.nftRepository.findOne({
       where: { id: nftId, status: NFT_STATUS.ACTIVE },
     });
