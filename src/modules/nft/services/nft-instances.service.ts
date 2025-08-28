@@ -8,10 +8,11 @@ import { NftInstanceResponseDto } from '@/modules/nft/dto/nft-instance-response.
 import { ApiResponse } from '@/common';
 import {
   NFT_INSTANCE_STATUS,
-  NFT_INSTANCE_STATUS_VALUES,
-  NftInstanceStatus,
+  NFT_SORT_OPTIONS,
+  PAGINATION_CONSTRAINTS,
 } from '@/modules/nft/constants';
 import { NftTypesService } from './nft-types.service';
+import { QueryNftInstancesDto } from '@/modules/nft/dto/query-nft-instances.dto';
 
 /**
  * NFT实例服务类
@@ -87,15 +88,11 @@ export class NftInstancesService {
     /**
    * 获取在售商品实例列表（公开访问）
    * 
-   * @param status 状态筛选（可选）
-   * @param page 页码
-   * @param limit 每页数量
+   * @param queryDto 查询条件DTO
    * @returns Promise<ApiResponse<分页数据>> NFT实例列表
    */
   async getNftInstanceList(
-    status?: NftInstanceStatus,
-    page: number = 1,
-    limit: number = 10
+    queryDto: QueryNftInstancesDto
   ): Promise<ApiResponse<{
     list: NftInstanceResponseDto[];
     total: number;
@@ -104,13 +101,19 @@ export class NftInstancesService {
     totalPages: number;
   }>> {
     try {
-      const whereCondition = status ? { status } : {};
+      const { status = NFT_INSTANCE_STATUS.AVAILABLE, sort = NFT_SORT_OPTIONS.LATEST, page = PAGINATION_CONSTRAINTS.DEFAULT_PAGE, limit = PAGINATION_CONSTRAINTS.DEFAULT_LIMIT } = queryDto;
       const skip = (page - 1) * limit;
+      
+      // 构建查询条件
+      const whereCondition = status ? { status } : {};
+      
+      // 应用排序
+      const orderCondition = this.applySorting(sort);
       
       const [nftInstances, total] = await this.nftInstanceRepository.findAndCount({
         where: whereCondition,
         relations: ['nft', 'owner'],
-        order: { createdAt: 'DESC' },
+        order: orderCondition,
         skip,
         take: limit,
       });
@@ -132,6 +135,26 @@ export class NftInstancesService {
       );
     } catch (error) {
       throw new InternalServerErrorException('NFT商品列表查询失败，请稍后重试', error.message);
+    }
+  }
+
+  /**
+   * 应用排序逻辑
+   * @param sort 排序方式
+   * @returns 排序条件对象
+   */
+  private applySorting(sort: string): any {
+    switch (sort) {
+      case NFT_SORT_OPTIONS.PRICE_LOW_TO_HIGH:
+        // 按价格升序排序
+        return { price: 'ASC', createdAt: 'DESC' };
+      case NFT_SORT_OPTIONS.PRICE_HIGH_TO_LOW:
+        // 按价格降序排序
+        return { price: 'DESC', createdAt: 'DESC' };
+      case NFT_SORT_OPTIONS.LATEST:
+      default:
+        // 默认按最新发布排序
+        return { createdAt: 'DESC' };
     }
   }
 
@@ -168,16 +191,12 @@ export class NftInstancesService {
    * 根据拥有者获取NFT实例列表（用户权限）
    * 
    * @param userId 用户ID
-   * @param status 状态筛选（可选）
-   * @param page 页码
-   * @param limit 每页数量
+   * @param queryDto 查询条件DTO
    * @returns Promise<ApiResponse<分页数据>> NFT实例列表
    */
   async getNftInstanceListByOwner(
     userId: number,
-    status?: NftInstanceStatus,
-    page: number = 1,
-    limit: number = 10
+    queryDto: QueryNftInstancesDto
   ): Promise<ApiResponse<{
     list: NftInstanceResponseDto[];
     total: number;
@@ -186,15 +205,21 @@ export class NftInstancesService {
     totalPages: number;
   }>> {
     try {
+      const { status = NFT_INSTANCE_STATUS.AVAILABLE, sort = NFT_SORT_OPTIONS.LATEST, page = PAGINATION_CONSTRAINTS.DEFAULT_PAGE, limit = PAGINATION_CONSTRAINTS.DEFAULT_LIMIT } = queryDto;
+      const skip = (page - 1) * limit;
+      
+      // 构建查询条件
       const whereCondition = status 
         ? { ownerId: userId, status } 
         : { ownerId: userId };
-      const skip = (page - 1) * limit;
+      
+      // 应用排序
+      const orderCondition = this.applySorting(sort);
       
       const [nftInstances, total] = await this.nftInstanceRepository.findAndCount({
         where: whereCondition,
         relations: ['nft', 'owner'],
-        order: { createdAt: 'DESC' },
+        order: orderCondition,
         skip,
         take: limit,
       });
@@ -223,16 +248,12 @@ export class NftInstancesService {
    * 根据NFT类型获取实例列表（公开访问）
    * 
    * @param nftId NFT类型ID
-   * @param status 状态筛选（可选）
-   * @param page 页码
-   * @param limit 每页数量
+   * @param queryDto 查询条件DTO
    * @returns Promise<ApiResponse<分页数据>> NFT实例列表
    */
   async getNftInstanceListByType(
     nftId: number,
-    status?: NftInstanceStatus,
-    page: number = 1,
-    limit: number = 10
+    queryDto: QueryNftInstancesDto
   ): Promise<ApiResponse<{
     list: NftInstanceResponseDto[];
     total: number;
@@ -241,15 +262,21 @@ export class NftInstancesService {
     totalPages: number;
   }>> {
     try {
+      const { status = NFT_INSTANCE_STATUS.AVAILABLE, sort = NFT_SORT_OPTIONS.LATEST, page = PAGINATION_CONSTRAINTS.DEFAULT_PAGE, limit = PAGINATION_CONSTRAINTS.DEFAULT_LIMIT } = queryDto;
+      const skip = (page - 1) * limit;
+      
+      // 构建查询条件
       const whereCondition = status 
         ? { nftId, status } 
         : { nftId };
-      const skip = (page - 1) * limit;
+      
+      // 应用排序
+      const orderCondition = this.applySorting(sort);
       
       const [nftInstances, total] = await this.nftInstanceRepository.findAndCount({
         where: whereCondition,
         relations: ['nft', 'owner'],
-        order: { createdAt: 'DESC' },
+        order: orderCondition,
         skip,
         take: limit,
       });

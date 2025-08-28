@@ -53,9 +53,14 @@ export class NftTypesController {
    * 支持多种查询条件：
    * - status: NFT状态过滤（active | inactive）
    * - name: NFT名称模糊搜索
-   * - type: NFT类型过滤
+   * - sort: 排序方式（latest | price_low_to_high | price_high_to_low），默认为latest
    * - page: 页码（默认为1）
    * - limit: 每页条数（默认为10，最大100）
+   * 
+   * 排序选项说明：
+   * - latest: 最新发布（默认排序）
+   * - price_low_to_high: 按最低价格从低到高排序
+   * - price_high_to_low: 按最低价格从高到低排序
    * 
    * 包含每个NFT类型的可售数量和最低价格信息
    * 

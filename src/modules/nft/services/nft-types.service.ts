@@ -10,7 +10,8 @@ import { LoggingService } from '@/common/services/logging.service';
 import { 
   NFT_STATUS, 
   NFT_INSTANCE_STATUS,
-  PAGINATION_CONSTRAINTS
+  PAGINATION_CONSTRAINTS,
+  NFT_SORT_OPTIONS
 } from '@/modules/nft/constants';
 
 /**
@@ -104,6 +105,7 @@ export class NftTypesService {
    * 支持多种过滤条件的组合查询
    * 包含每个NFT类型的可售数量和最低价格信息
    * 使用单次JOIN查询
+   * 支持多种排序方式：最新发布、最低价格、最高价格
    * 
    * @param queryDto 查询条件DTO
    * @returns Promise<ApiResponse<any>> NFT类型分页列表
@@ -117,7 +119,7 @@ export class NftTypesService {
     totalPages: number
   }>> {
     try {
-      const { status, name, type, page = PAGINATION_CONSTRAINTS.DEFAULT_PAGE, limit = PAGINATION_CONSTRAINTS.DEFAULT_LIMIT } = queryDto;
+      const { status = NFT_STATUS.ACTIVE, name, sort = NFT_SORT_OPTIONS.LATEST, page = PAGINATION_CONSTRAINTS.DEFAULT_PAGE, limit = PAGINATION_CONSTRAINTS.DEFAULT_LIMIT } = queryDto;
       const skip = (page - 1) * limit;
 
       // 单次JOIN查询
@@ -133,8 +135,10 @@ export class NftTypesService {
           'MIN(instance.price) as minPrice'
         ])
         .setParameter('availableStatus', NFT_INSTANCE_STATUS.AVAILABLE)
-        .groupBy('nft.id')
-        .orderBy('nft.createdAt', 'DESC');
+        .groupBy('nft.id');
+
+      // 应用排序
+      this.applySorting(queryBuilder, sort);
 
       // 添加状态过滤
       if (status) {
@@ -146,10 +150,7 @@ export class NftTypesService {
         queryBuilder.andWhere('nft.name LIKE :searchName', { searchName: `%${name.trim()}%` });
       }
 
-      // 添加类型过滤
-      if (type?.trim()) {
-        queryBuilder.andWhere('nft.type = :nftType', { nftType: type.trim() });
-      }
+
 
       // 应用分页
       queryBuilder.skip(skip).take(limit);
@@ -185,12 +186,39 @@ export class NftTypesService {
   }
 
   /**
+   * 应用排序逻辑
+   * @param queryBuilder TypeORM查询构建器
+   * @param sort 排序方式
+   */
+  private applySorting(queryBuilder: any, sort: string): void {
+    switch (sort) {
+      case NFT_SORT_OPTIONS.PRICE_LOW_TO_HIGH:
+        // 按最低价格升序排序
+        queryBuilder.orderBy('minPrice', 'ASC');
+        // 如果价格相同，按最新发布排序
+        queryBuilder.addOrderBy('nft.createdAt', 'DESC');
+        break;
+      case NFT_SORT_OPTIONS.PRICE_HIGH_TO_LOW:
+        // 按最低价格降序排序
+        queryBuilder.orderBy('minPrice', 'DESC');
+        // 如果价格相同，按最新发布排序
+        queryBuilder.addOrderBy('nft.createdAt', 'DESC');
+        break;
+      case NFT_SORT_OPTIONS.LATEST:
+      default:
+        // 默认按最新发布排序
+        queryBuilder.orderBy('nft.createdAt', 'DESC');
+        break;
+    }
+  }
+
+  /**
    * 获取NFT总数（用于分页）
    * @param queryDto 查询条件DTO
    * @returns Promise<number> NFT总数
    */
   private async getNftCount(queryDto: QueryNftTypesDto): Promise<number> {
-    const { status, name, type } = queryDto;
+    const { status, name } = queryDto;
     
     const queryBuilder = this.nftRepository
       .createQueryBuilder('nft');
@@ -203,11 +231,6 @@ export class NftTypesService {
     // 添加名称模糊搜索
     if (name?.trim()) {
       queryBuilder.andWhere('nft.name LIKE :searchName', { searchName: `%${name.trim()}%` });
-    }
-
-    // 添加类型过滤
-    if (type?.trim()) {
-      queryBuilder.andWhere('nft.type = :nftType', { nftType: type.trim() });
     }
 
     return queryBuilder.getCount();

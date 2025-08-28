@@ -1,27 +1,20 @@
 import { Transform } from 'class-transformer';
 import { IsOptional, IsEnum, IsInt, Min, Max } from 'class-validator';
-import { NftStatus, NFT_STATUS_VALUES, PAGINATION_CONSTRAINTS, NftSortOption, NFT_SORT_OPTIONS_VALUES } from '@/modules/nft/constants';
+import { NftInstanceStatus, NFT_INSTANCE_STATUS_VALUES, PAGINATION_CONSTRAINTS, NftSortOption, NFT_SORT_OPTIONS_VALUES } from '@/modules/nft/constants';
 
 /**
- * NFT类型查询DTO
- * 用于封装NFT类型列表查询的所有参数
+ * NFT实例查询DTO
+ * 用于封装NFT实例列表查询的所有参数
  */
-export class QueryNftTypesDto {
+export class QueryNftInstancesDto {
   /**
-   * NFT状态过滤
+   * NFT实例状态过滤
    */
   @IsOptional()
-  @IsEnum(NFT_STATUS_VALUES, { 
-    message: `状态只能是${NFT_STATUS_VALUES.join('或')}` 
+  @IsEnum(NFT_INSTANCE_STATUS_VALUES, { 
+    message: `状态只能是${NFT_INSTANCE_STATUS_VALUES.join('或')}` 
   })
-  status?: NftStatus;
-
-  /**
-   * NFT名称模糊搜索
-   */
-  @IsOptional()
-  @Transform(({ value }) => value?.trim())
-  name?: string;
+  status?: NftInstanceStatus;
 
   /**
    * 排序方式
