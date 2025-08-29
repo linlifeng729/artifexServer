@@ -1,7 +1,6 @@
 import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { randomUUID } from 'crypto';
 import { User } from '@/modules/user/entities/user.entity';
 import { EncryptionService } from '@/modules/user/services/encryption.service';
@@ -156,25 +155,5 @@ export class VerificationCodeService {
         return ResponseHelper.error('验证失败，请稍后重试', null);
       }
     });
-  }
-
-  /**
-   * 清理过期的验证码（定时任务，每5分钟执行一次）
-   */
-  @Cron(CronExpression.EVERY_5_MINUTES)
-  async cleanupExpiredCodes(): Promise<void> {
-    try {
-      await this.userRepository
-        .createQueryBuilder()
-        .update(User)
-        .set({
-          verificationCode: () => 'NULL',
-          verificationCodeExpiredAt: () => 'NULL'
-        })
-        .where('verificationCodeExpiredAt < :now AND verificationCode IS NOT NULL', { now: new Date() })
-        .execute();
-    } catch (error) {
-      // 定时任务异常不抛出，避免影响其他功能
-    }
   }
 }

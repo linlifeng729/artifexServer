@@ -40,11 +40,9 @@ export class QueryNftTypesDto {
    * Query参数为字符串，需要转换为数字
    */
   @IsOptional()
-  @Transform(({ value }) => value ? parseInt(value, 10) : PAGINATION_CONSTRAINTS.DEFAULT_PAGE)
+    @Transform(({ value }) => value ? parseInt(value, 10) : PAGINATION_CONSTRAINTS.DEFAULT_PAGE)
   @IsInt({ message: '页码必须是整数' })
-  @Min(PAGINATION_CONSTRAINTS.MIN_PAGE, { 
-    message: `页码最小值为${PAGINATION_CONSTRAINTS.MIN_PAGE}` 
-  })
+  @Min(1, { message: '页码最小值为1' })
   page: number = PAGINATION_CONSTRAINTS.DEFAULT_PAGE;
 
   /**
@@ -52,13 +50,11 @@ export class QueryNftTypesDto {
    * Query参数为字符串，需要转换为数字
    */
   @IsOptional()
-  @Transform(({ value }) => value ? parseInt(value, 10) : PAGINATION_CONSTRAINTS.DEFAULT_LIMIT)
+    @Transform(({ value }) => value ? parseInt(value, 10) : PAGINATION_CONSTRAINTS.DEFAULT_LIMIT)
   @IsInt({ message: '每页条数必须是整数' })
-  @Min(PAGINATION_CONSTRAINTS.MIN_LIMIT, { 
-    message: `每页条数最小值为${PAGINATION_CONSTRAINTS.MIN_LIMIT}` 
-  })
-  @Max(PAGINATION_CONSTRAINTS.MAX_LIMIT, { 
-    message: `每页条数最大值为${PAGINATION_CONSTRAINTS.MAX_LIMIT}` 
+  @Min(1, { message: '每页条数最小值为1' })
+  @Max(PAGINATION_CONSTRAINTS.MAX_LIMIT, {
+    message: `每页条数最大值为${PAGINATION_CONSTRAINTS.MAX_LIMIT}`
   })
   limit: number = PAGINATION_CONSTRAINTS.DEFAULT_LIMIT;
 }

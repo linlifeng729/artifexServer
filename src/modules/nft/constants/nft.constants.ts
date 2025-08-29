@@ -67,7 +67,5 @@ export const NFT_CONSTRAINTS = {
 export const PAGINATION_CONSTRAINTS = {
   DEFAULT_PAGE: 1,
   DEFAULT_LIMIT: 10,
-  MIN_PAGE: 1,
-  MIN_LIMIT: 1,
   MAX_LIMIT: 100,
 } as const;

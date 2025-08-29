@@ -25,22 +25,7 @@ export class AuthService {
       throw new BadRequestException(verifyResult.message || '手机号或验证码错误');
     }
 
-    let user = verifyResult.data;
-
-    // 检查用户是否已完成注册（通过role字段判断）
-    if (!user.role) {
-      try {
-        await this.userService.completeUserProfile(user.id);
-        // 重新获取包含 userId 的完整用户信息
-        const fullUser = await this.userService.getUserByIdInternal(user.id);
-        if (!fullUser) {
-          throw new InternalServerErrorException('用户信息获取失败');
-        }
-        user = fullUser;
-      } catch (error) {
-        throw new InternalServerErrorException('用户信息完善失败');
-      }
-    }
+    const user = verifyResult.data;
 
     // 根据用户角色设置token有效期
     const expiresIn = user.role === AUTH_CONSTANTS.ROLES.ADMIN 

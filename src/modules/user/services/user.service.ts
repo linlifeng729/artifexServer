@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, InternalServerErrorException } from '@ne
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '@/modules/user/entities/user.entity';
-import { UpdateUserDto, UserResponseDto, UserPaginatedResponseDto, UserDeleteResponseDto } from '@/modules/user/dto';
+import { UpdateUserDto } from '@/modules/user/dto';
 import { EncryptionService } from '@/modules/user/services/encryption.service';
 import { ResponseHelper, ApiResponse } from '@/common';
 import { USER_CONSTANTS } from '@/modules/user/constants';
@@ -44,51 +44,6 @@ export class UserService {
       }
       throw new InternalServerErrorException(
         '用户查询失败，请稍后重试',
-        { cause: error }
-      );
-    }
-  }
-
-  /**
-   * 完善用户注册信息（首次登录时调用）
-   * 将临时用户转为正式用户
-   */
-  async completeUserProfile(userId: string, nickname?: string): Promise<PublicUser> {
-    try {
-      // 查找用户
-      const user = await this.userRepository.findOne({ 
-        where: { id: userId, isActive: true },
-        select: USER_CONSTANTS.SELECT_FIELDS.FULL
-      });
-      
-      if (!user) {
-        throw new NotFoundException('用户不存在');
-      }
-
-      // 检查用户是否已经完成注册
-      if (user.role) {
-        // 用户已经完成注册，返回解密后的用户信息
-        return this._getUserWithDecryptedPhone(user);
-      }
-
-      // 完善用户信息，设置为普通用户
-      const updateData: Partial<User> = { role: USER_CONSTANTS.ROLES.USER };
-      if (nickname) {
-        updateData.nickname = nickname;
-      }
-      
-      await this.userRepository.update(userId, updateData);
-
-      // 重新查询更新后的用户信息（优化：直接使用更新后的数据）
-      const updatedUser = { ...user, ...updateData };
-      
-      return this._getUserWithDecryptedPhone(updatedUser);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        '用户注册完善失败，请稍后重试',
         { cause: error }
       );
     }

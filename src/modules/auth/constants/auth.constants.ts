@@ -9,7 +9,6 @@ export const AUTH_CONSTANTS = {
     LENGTH: 6,
     EXPIRATION_MINUTES: 5,
     SEND_INTERVAL_SECONDS: 60,
-    CLEANUP_INTERVAL_MINUTES: 5,
   },
   
   // JWT 相关
@@ -34,12 +33,9 @@ export const AUTH_CONSTANTS = {
   // 短信模板参数
   SMS: {
     TEMPLATE_PARAMS: {
-      CODE_INDEX: 0,
-      EXPIRATION_INDEX: 1,
       EXPIRATION_MINUTES: '5',
     },
   },
 } as const;
 
-// 导出类型以便 TypeScript 类型检查
-export type AuthRole = typeof AUTH_CONSTANTS.ROLES[keyof typeof AUTH_CONSTANTS.ROLES];
+

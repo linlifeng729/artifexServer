@@ -66,21 +66,6 @@ export class EncryptionService {
   }
 
   /**
-   * 验证手机号是否匹配（用于登录验证）
-   * @param plainPhone 明文手机号
-   * @param encryptedPhone 加密的手机号
-   * @returns 是否匹配
-   */
-  verifyPhone(plainPhone: string, encryptedPhone: string): boolean {
-    try {
-      const decryptedPhone = this.decryptPhone(encryptedPhone);
-      return plainPhone === decryptedPhone;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  /**
    * 生成手机号的哈希值（用于索引查询）
    * 使用SHA-256算法生成固定长度的哈希值
    * @param phone 明文手机号
