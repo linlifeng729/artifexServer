@@ -56,6 +56,7 @@ export class NftInstancesController {
    * 获取NFT在售商品实例列表（公开访问）
    * 
    * 支持多种查询条件：
+   * - nftTypeId: NFT类型ID过滤（可选），当提供此参数时只返回指定类型的NFT实例
    * - status: NFT实例状态过滤（available | sold | reserved）
    * - sort: 排序方式（latest | price_low_to_high | price_high_to_low），默认为latest
    * - page: 页码（默认为1）
@@ -65,6 +66,11 @@ export class NftInstancesController {
    * - latest: 最新发布（默认排序）
    * - price_low_to_high: 按价格从低到高排序
    * - price_high_to_low: 按价格从高到低排序
+   * 
+   * 使用示例：
+   * - GET /api/nft-instances - 获取所有NFT实例
+   * - GET /api/nft-instances?nftTypeId=1 - 获取类型1的NFT实例
+   * - GET /api/nft-instances?nftTypeId=1&status=available - 获取类型1且状态为可用的NFT实例
    * 
    * @param queryDto 查询条件DTO，自动验证和转换查询参数
    * @returns Promise<ApiResponse<any>> NFT实例分页列表
@@ -117,32 +123,5 @@ export class NftInstancesController {
     @Param('id', ParseIntPipe) id: number,
   ): Promise<ApiResponse<NftInstanceResponseDto>> {
     return await this.nftInstancesService.findNftInstanceById(id);
-  }
-
-  /**
-   * 获取某个类型下所有在售商品列表（公开访问）
-   * 
-   * 支持多种查询条件：
-   * - status: NFT实例状态过滤（available | sold | reserved）
-   * - sort: 排序方式（latest | price_low_to_high | price_high_to_low），默认为latest
-   * - page: 页码（默认为1）
-   * - limit: 每页条数（默认为10，最大100）
-   * 
-   * 排序选项说明：
-   * - latest: 最新发布（默认排序）
-   * - price_low_to_high: 按价格从低到高排序
-   * - price_high_to_low: 按价格从高到低排序
-   * 
-   * @param nftTypeId NFT类型ID
-   * @param queryDto 查询条件DTO，自动验证和转换查询参数
-   * @returns Promise<ApiResponse<any>> 指定类型的NFT实例分页列表
-   */
-  @Public()
-  @Get('by-type/:nftTypeId')
-  async getNftInstanceListByType(
-    @Param('nftTypeId', ParseIntPipe) nftTypeId: number,
-    @Query() queryDto: QueryNftInstancesDto,
-  ): Promise<ApiResponse<any>> {
-    return await this.nftInstancesService.getNftInstanceListByType(nftTypeId, queryDto);
   }
 }

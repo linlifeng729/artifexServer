@@ -8,6 +8,16 @@ import { NftInstanceStatus, NFT_INSTANCE_STATUS_VALUES, PAGINATION_CONSTRAINTS, 
  */
 export class QueryNftInstancesDto {
   /**
+   * NFT类型ID过滤（可选）
+   * 当提供此参数时，只返回指定类型的NFT实例
+   */
+  @IsOptional()
+  @Transform(({ value }) => value ? parseInt(value, 10) : undefined)
+  @IsInt({ message: 'NFT类型ID必须是整数' })
+  @Min(1, { message: 'NFT类型ID必须大于0' })
+  nftTypeId?: number;
+
+  /**
    * NFT实例状态过滤
    */
   @IsOptional()

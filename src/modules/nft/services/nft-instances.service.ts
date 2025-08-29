@@ -88,6 +88,18 @@ export class NftInstancesService {
     /**
    * 获取在售商品实例列表（公开访问）
    * 
+   * 支持多种查询条件：
+   * - nftTypeId: NFT类型ID过滤（可选）
+   * - status: NFT实例状态过滤（available | sold | reserved）
+   * - sort: 排序方式（latest | price_low_to_high | price_high_to_low），默认为latest
+   * - page: 页码（默认为1）
+   * - limit: 每页条数（默认为10，最大100）
+   * 
+   * 排序选项说明：
+   * - latest: 最新发布（默认排序）
+   * - price_low_to_high: 按价格从低到高排序
+   * - price_high_to_low: 按价格从高到低排序
+   * 
    * @param queryDto 查询条件DTO
    * @returns Promise<ApiResponse<分页数据>> NFT实例列表
    */
@@ -101,11 +113,27 @@ export class NftInstancesService {
     totalPages: number;
   }>> {
     try {
-      const { status = NFT_INSTANCE_STATUS.AVAILABLE, sort = NFT_SORT_OPTIONS.LATEST, page = PAGINATION_CONSTRAINTS.DEFAULT_PAGE, limit = PAGINATION_CONSTRAINTS.DEFAULT_LIMIT } = queryDto;
+      const { 
+        nftTypeId, 
+        status = NFT_INSTANCE_STATUS.AVAILABLE, 
+        sort = NFT_SORT_OPTIONS.LATEST, 
+        page = PAGINATION_CONSTRAINTS.DEFAULT_PAGE, 
+        limit = PAGINATION_CONSTRAINTS.DEFAULT_LIMIT 
+      } = queryDto;
       const skip = (page - 1) * limit;
       
       // 构建查询条件
-      const whereCondition = status ? { status } : {};
+      const whereCondition: any = {};
+      
+      // 按NFT类型过滤
+      if (nftTypeId) {
+        whereCondition.nftId = nftTypeId;
+      }
+      
+      // 按状态过滤
+      if (status) {
+        whereCondition.status = status;
+      }
       
       // 应用排序
       const orderCondition = this.applySorting(sort);
@@ -122,9 +150,15 @@ export class NftInstancesService {
         NftInstanceResponseDto.fromEntity(instance)
       );
       
-      const message = status 
-        ? `状态为${status}的NFT商品列表查询成功`
-        : 'NFT商品列表查询成功';
+      // 根据查询条件生成相应的消息
+      let message = 'NFT商品列表查询成功';
+      if (nftTypeId && status) {
+        message = `NFT类型${nftTypeId}状态为${status}的商品列表查询成功`;
+      } else if (nftTypeId) {
+        message = `NFT类型${nftTypeId}的商品列表查询成功`;
+      } else if (status) {
+        message = `状态为${status}的NFT商品列表查询成功`;
+      }
       
       return ResponseHelper.paginated(
         nftInstanceResponses,
@@ -231,63 +265,6 @@ export class NftInstancesService {
       const message = status 
         ? `用户状态为${status}的NFT商品列表查询成功`
         : '用户NFT商品列表查询成功';
-      
-      return ResponseHelper.paginated(
-        nftInstanceResponses,
-        total,
-        page,
-        limit,
-        message
-      );
-    } catch (error) {
-      throw new InternalServerErrorException('NFT商品列表查询失败，请稍后重试', error.message);
-    }
-  }
-
-  /**
-   * 根据NFT类型获取实例列表（公开访问）
-   * 
-   * @param nftId NFT类型ID
-   * @param queryDto 查询条件DTO
-   * @returns Promise<ApiResponse<分页数据>> NFT实例列表
-   */
-  async getNftInstanceListByType(
-    nftId: number,
-    queryDto: QueryNftInstancesDto
-  ): Promise<ApiResponse<{
-    list: NftInstanceResponseDto[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  }>> {
-    try {
-      const { status = NFT_INSTANCE_STATUS.AVAILABLE, sort = NFT_SORT_OPTIONS.LATEST, page = PAGINATION_CONSTRAINTS.DEFAULT_PAGE, limit = PAGINATION_CONSTRAINTS.DEFAULT_LIMIT } = queryDto;
-      const skip = (page - 1) * limit;
-      
-      // 构建查询条件
-      const whereCondition = status 
-        ? { nftId, status } 
-        : { nftId };
-      
-      // 应用排序
-      const orderCondition = this.applySorting(sort);
-      
-      const [nftInstances, total] = await this.nftInstanceRepository.findAndCount({
-        where: whereCondition,
-        relations: ['nft', 'owner'],
-        order: orderCondition,
-        skip,
-        take: limit,
-      });
-
-      const nftInstanceResponses = nftInstances.map(instance => 
-        NftInstanceResponseDto.fromEntity(instance)
-      );
-      
-      const message = status 
-        ? `NFT类型${nftId}状态为${status}的商品列表查询成功`
-        : `NFT类型${nftId}的商品列表查询成功`;
       
       return ResponseHelper.paginated(
         nftInstanceResponses,
