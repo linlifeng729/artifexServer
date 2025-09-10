@@ -33,6 +33,18 @@ export class VerificationCodeService {
   }
 
   /**
+   * 脱敏处理手机号
+   * @param phone 原始手机号
+   * @returns 脱敏后的手机号格式 137****1111
+   */
+  private _maskPhoneNumber(phone: string): string {
+    if (!phone || phone.length < 11) {
+      return phone;
+    }
+    return phone.slice(0, 3) + '****' + phone.slice(-4);
+  }
+
+  /**
    * 发送验证码
    */
   async sendSmsCode(phone: string): Promise<ApiResponse<boolean>> {
@@ -72,6 +84,7 @@ export class VerificationCodeService {
         user = this.userRepository.create({
           id: randomUUID(),
           phone: encryptedPhone,
+          nickname: this._maskPhoneNumber(phone),
           phoneHash,
           verificationCode,
           verificationCodeExpiredAt: expiredAt,
