@@ -179,8 +179,6 @@ export class NftTypesService {
         message
       );
     } catch (error) {
-      // 记录详细错误信息
-      this.loggingService.error(`NFT列表查询失败: ${error.message}`, error.stack, 'NftTypesService');
       throw new InternalServerErrorException('NFT列表查询失败，请稍后重试', error.message);
     }
   }

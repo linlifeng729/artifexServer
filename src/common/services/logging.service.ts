@@ -193,24 +193,23 @@ export class LoggingService implements LoggerService {
     return sanitized;
   }
 
-  // LoggerService 接口实现
   log(message: any, context?: string): void {
     this.logger.log(message, context);
   }
 
-  error(message: any, trace?: string, context?: string): void {
-    this.logger.error(message, trace, context);
+  error(message: any, context?: any): void {
+    this.logger.error(message, context);
   }
 
-  warn(message: any, context?: string): void {
+  warn(message: any, context?: any): void {
     this.logger.warn(message, context);
   }
 
-  debug(message: any, context?: string): void {
+  debug(message: any, context?: any): void {
     this.logger.debug(message, context);
   }
 
-  verbose(message: any, context?: string): void {
+  verbose(message: any, context?: any): void {
     this.logger.verbose(message, context);
   }
 }

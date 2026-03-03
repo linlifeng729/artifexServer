@@ -126,7 +126,7 @@ export class TencentSmsService {
 
       const response = await this.smsClient.SendSms(params);
       
-      this.loggingService.log('腾讯云短信发送响应:', JSON.stringify(response));
+      this.loggingService.log(`腾讯云短信发送响应: ${JSON.stringify(response)}`);
 
       // 检查发送结果
       if (response.SendStatusSet && response.SendStatusSet.length > 0) {
