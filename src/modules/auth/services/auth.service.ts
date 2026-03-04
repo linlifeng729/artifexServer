@@ -4,7 +4,8 @@ import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { SendVerificationCodeDto } from '@/modules/auth/dto/send-verificationcode.dto';
 import { UserService } from '@/modules/user/services/user.service';
 import { VerificationCodeService } from '@/modules/auth/services/verification-code.service';
-import { ResponseHelper, ApiResponse } from '@/common';
+import { ApiResponse } from '@/common/interceptors/response.interceptor';
+import { ResponseHelper } from '@/common/utils/response.helper';
 import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
 
 @Injectable()

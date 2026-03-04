@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException, InternalServerErrorException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ResponseHelper } from '@/common';
+import { ApiResponse } from '@/common/interceptors/response.interceptor';
+import { ResponseHelper } from '@/common/utils/response.helper';
 import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
 import { CreateNftInstanceDto } from '@/modules/nft/dto/create-nft-instance.dto';
 import { NftInstanceResponseDto } from '@/modules/nft/dto/nft-instance-response.dto';
-import { ApiResponse } from '@/common';
 import {
   NFT_INSTANCE_STATUS,
   NFT_SORT_OPTIONS,

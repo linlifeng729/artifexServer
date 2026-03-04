@@ -13,7 +13,7 @@ import { CreateNftDto, NftResponseDto, QueryNftTypesDto } from '@/modules/nft/dt
 import { AdminOnly } from '@/modules/auth/decorators/admin-only.decorator';
 import { AdminOnlyGuard } from '@/modules/auth/guards/admin-only.guard';
 import { Public } from '@/modules/auth/decorators/public.decorator';
-import { ApiResponse } from '@/common';
+import { ApiResponse } from '@/common/interceptors/response.interceptor';
 import { LoggingService } from '@/common/services/logging.service';
 
 /**

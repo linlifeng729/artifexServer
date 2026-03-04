@@ -5,7 +5,8 @@ import { randomUUID } from 'crypto';
 import { User } from '@/modules/user/entities/user.entity';
 import { EncryptionService } from '@/modules/user/services/encryption.service';
 import { TencentSmsService } from './tencent-sms.service';
-import { ResponseHelper, ApiResponse } from '@/common';
+import { ApiResponse } from '@/common/interceptors/response.interceptor';
+import { ResponseHelper } from '@/common/utils/response.helper';
 import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
 
 /**

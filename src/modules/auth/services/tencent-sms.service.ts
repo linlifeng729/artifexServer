@@ -3,7 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import * as tencentcloud from 'tencentcloud-sdk-nodejs';
 import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
 import { LoggingService } from '@/common/services/logging.service';
-import { ResponseHelper, ApiResponse } from '@/common';
+import { ApiResponse } from '@/common/interceptors/response.interceptor';
+import { ResponseHelper } from '@/common/utils/response.helper';
 
 // 导入对应产品模块的client models
 const SmsClient = tencentcloud.sms.v20210111.Client;

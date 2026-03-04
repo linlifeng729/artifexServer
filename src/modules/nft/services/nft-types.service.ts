@@ -5,7 +5,8 @@ import { Nft } from '@/modules/nft/entities/nft.entity';
 import { CreateNftDto } from '@/modules/nft/dto/create-nft.dto';
 import { NftResponseDto } from '@/modules/nft/dto/nft-response.dto';
 import { QueryNftTypesDto } from '@/modules/nft/dto/query-nft-types.dto';
-import { ResponseHelper, ApiResponse } from '@/common';
+import { ApiResponse } from '@/common/interceptors/response.interceptor';
+import { ResponseHelper } from '@/common/utils/response.helper';
 import { LoggingService } from '@/common/services/logging.service';
 import { 
   NFT_STATUS, 

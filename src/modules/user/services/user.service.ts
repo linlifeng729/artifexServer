@@ -4,7 +4,8 @@ import { Repository } from 'typeorm';
 import { User } from '@/modules/user/entities/user.entity';
 import { UpdateUserDto } from '@/modules/user/dto';
 import { EncryptionService } from '@/modules/user/services/encryption.service';
-import { ResponseHelper, ApiResponse } from '@/common';
+import { ApiResponse } from '@/common/interceptors/response.interceptor';
+import { ResponseHelper } from '@/common/utils/response.helper';
 import { USER_CONSTANTS } from '@/modules/user/constants';
 import { PublicUser, InternalUser, UserPaginatedResult, UserDeleteResult } from '@/modules/user/types/user.types';
 

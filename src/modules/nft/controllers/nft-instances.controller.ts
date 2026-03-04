@@ -15,7 +15,7 @@ import { NftInstanceResponseDto } from '@/modules/nft/dto/nft-instance-response.
 import { QueryNftInstancesDto } from '@/modules/nft/dto/query-nft-instances.dto';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt.guard';
 import { Public } from '@/modules/auth/decorators/public.decorator';
-import { ApiResponse } from '@/common';
+import { ApiResponse } from '@/common/interceptors/response.interceptor';
 
 /**
  * NFT实例控制器
