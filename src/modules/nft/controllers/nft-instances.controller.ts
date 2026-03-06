@@ -6,14 +6,12 @@ import {
   Param,
   Query,
   ParseIntPipe,
-  UseGuards,
   Request,
 } from '@nestjs/common';
 import { NftInstancesService } from '@/modules/nft/services/nft-instances.service';
 import { CreateNftInstanceDto } from '@/modules/nft/dto/create-nft-instance.dto';
 import { NftInstanceResponseDto } from '@/modules/nft/dto/nft-instance-response.dto';
 import { QueryNftInstancesDto } from '@/modules/nft/dto/query-nft-instances.dto';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt.guard';
 import { Public } from '@/modules/auth/decorators/public.decorator';
 import { ApiResponse } from '@/common/interceptors/response.interceptor';
 
@@ -43,7 +41,6 @@ export class NftInstancesController {
    * @returns Promise<ApiResponse<NftInstanceResponseDto>> 创建成功的NFT实例信息
    */
   @Post()
-  @UseGuards(JwtAuthGuard)
   async publishNftInstance(    
     @Body() createNftInstanceDto: CreateNftInstanceDto,
     @Request() request: any,
@@ -102,7 +99,6 @@ export class NftInstancesController {
    * @returns Promise<ApiResponse<any>> 用户的NFT实例分页列表
    */
   @Get('my')
-  @UseGuards(JwtAuthGuard)
   async getMyNftInstanceList(
     @Request() request: any,
     @Query() queryDto: QueryNftInstancesDto,

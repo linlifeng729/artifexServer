@@ -13,9 +13,36 @@ import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
  * 管理员权限守卫
  * 
  * 检查用户是否拥有管理员权限
- * 配合@AdminOnly()装饰器使用，确保只有管理员角色可以访问特定路由
+ * 配合 @AdminOnly() 装饰器使用，确保只有管理员角色可以访问特定路由
  * 
- * 注意：此守卫依赖于JwtAuthGuard已经执行过并在request中设置了user信息
+ * 执行逻辑：
+ * 1. 如果路由标记为 @Public()，直接放行
+ * 2. 如果路由没有标记 @AdminOnly()，直接放行
+ * 3. 检查 request.user 是否存在且角色为管理员
+ * 
+ * 注意：此守卫依赖于 JwtAuthGuard 已经执行过并在 request 中设置了 user 信息
+ * 
+ * @example
+ * ```typescript
+ * // 在模块中全局应用
+ * providers: [
+ *   {
+ *     provide: APP_GUARD,
+ *     useClass: AdminOnlyGuard,
+ *   },
+ * ]
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // 在控制器中使用
+ * @Controller('admin')
+ * export class AdminController {
+ *   @Get('users')
+ *   @UseGuards(JwtAuthGuard, AdminOnlyGuard)
+ *   getUsers() { ... }
+ * }
+ * ```
  */
 @Injectable()
 export class AdminOnlyGuard implements CanActivate {
@@ -26,8 +53,14 @@ export class AdminOnlyGuard implements CanActivate {
    * 
    * 检查当前用户是否为管理员角色
    * 
+   * 执行流程：
+   * 1. 检查是否是公共路由（@Public()），是则放行
+   * 2. 检查是否需要管理员权限（@AdminOnly()），否则放行
+   * 3. 从 request.user 获取用户信息
+   * 4. 验证用户角色是否为管理员
+   * 
    * @param context 执行上下文，包含请求信息
-   * @returns boolean 返回 true 允许访问，false 或抛出异常拒绝访问
+   * @returns boolean 返回 true 允许访问，抛出异常拒绝访问
    * 
    * @throws ForbiddenException 当用户不是管理员时抛出禁止访问异常
    */
