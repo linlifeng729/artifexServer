@@ -10,9 +10,7 @@ import {
 } from '@nestjs/common';
 import { NftTypesService } from '@/modules/nft/services/nft-types.service';
 import { CreateNftDto, NftResponseDto, QueryNftTypesDto } from '@/modules/nft/dto';
-import { AdminOnly } from '@/modules/auth/decorators/admin-only.decorator';
-import { AdminOnlyGuard } from '@/modules/auth/guards/admin-only.guard';
-import { Public } from '@/modules/auth/decorators/public.decorator';
+import { AdminOnly, Public } from '@/modules/auth/decorators';
 import { ApiResponse } from '@/common/interceptors/response.interceptor';
 import { LoggingService } from '@/common/services/logging.service';
 

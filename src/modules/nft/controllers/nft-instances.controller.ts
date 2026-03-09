@@ -12,7 +12,7 @@ import { NftInstancesService } from '@/modules/nft/services/nft-instances.servic
 import { CreateNftInstanceDto } from '@/modules/nft/dto/create-nft-instance.dto';
 import { NftInstanceResponseDto } from '@/modules/nft/dto/nft-instance-response.dto';
 import { QueryNftInstancesDto } from '@/modules/nft/dto/query-nft-instances.dto';
-import { Public } from '@/modules/auth/decorators/public.decorator';
+import { Public } from '@/modules/auth/decorators';
 import { ApiResponse } from '@/common/interceptors/response.interceptor';
 
 /**

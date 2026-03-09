@@ -2,7 +2,7 @@ import { Controller, Post, Body, HttpCode } from '@nestjs/common';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { SendVerificationCodeDto } from '@/modules/auth/dto/send-verificationcode.dto';
-import { Public } from '@/modules/auth/decorators/public.decorator';
+import { Public } from '@/modules/auth/decorators';
 
 /**
  * 认证控制器
