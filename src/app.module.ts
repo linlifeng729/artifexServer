@@ -1,19 +1,12 @@
-import { Module, Logger } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { AppController } from '@/app.controller';
 import { CommonModule } from '@/common/common.module';
 import { BusinessModule } from '@/modules/business.module';
-import { JwtAuthGuard } from '@/modules/auth/guards/jwt.guard';
-import { ResponseInterceptor } from '@/common/interceptors/response.interceptor';
-import { LoggingInterceptor } from '@/common/interceptors/logging.interceptor';
-import { HttpExceptionFilter } from '@/common/filters/http-exception.filter';
-import { User } from '@/modules/user/entities/user.entity';
-import { Nft } from '@/modules/nft/entities/nft.entity';
-import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
+import { appProviders } from '@/app.providers';
 
 /**
  * 应用根模块
@@ -35,12 +28,12 @@ import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'mysql',
+        autoLoadEntities: true,
         host: configService.get<string>('DB_HOST', 'localhost'),
         port: configService.get<number>('DB_PORT', 3306),
         username: configService.get<string>('DB_USERNAME', 'root'),
         password: configService.get<string>('DB_PASSWORD', ''),
         database: configService.get<string>('DB_DATABASE', 'artifex'),
-        entities: [User, Nft, NftInstance],
         synchronize: configService.get<boolean>('DB_SYNCHRONIZE', false),
         logging: configService.get<boolean>('DB_LOGGING', false),
       }),
@@ -67,28 +60,6 @@ import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
     AppController,
   ],
 
-  providers: [
-    Logger,
-    // 全局 JWT 认证守卫
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
-    // 全局日志拦截器（必须在响应拦截器之前）
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggingInterceptor,
-    },
-    // 全局响应拦截器
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: ResponseInterceptor,
-    },
-    // 全局异常过滤器
-    {
-      provide: APP_FILTER,
-      useClass: HttpExceptionFilter,
-    },
-  ],
+  providers: appProviders,
 })
 export class AppModule { }
