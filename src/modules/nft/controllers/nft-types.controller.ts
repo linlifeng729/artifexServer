@@ -11,6 +11,7 @@ import {
 import { NftTypesService } from '@/modules/nft/services/nft-types.service';
 import { CreateNftDto, NftResponseDto, QueryNftTypesDto } from '@/modules/nft/dto';
 import { AdminOnly, Public } from '@/modules/auth/decorators';
+import { AdminOnlyGuard } from '@/modules/auth/guards/admin-only.guard';
 import { ApiResponse } from '@/common/interceptors/response.interceptor';
 import { LoggingService } from '@/common/services/logging.service';
 
