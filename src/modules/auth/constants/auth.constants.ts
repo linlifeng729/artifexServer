@@ -13,8 +13,8 @@ export const AUTH_CONSTANTS = {
   
   // JWT 相关
   JWT: {
-    ADMIN_EXPIRATION: '1d',      // 管理员：1天
-    USER_EXPIRATION: '30d',      // 用户：1个月
+    ADMIN_EXPIRATION: '7d',
+    USER_EXPIRATION: '30d',
     BEARER_PREFIX: 'Bearer',
   },
   
