@@ -36,6 +36,12 @@ export const AUTH_CONSTANTS = {
       EXPIRATION_MINUTES: '5',
     },
   },
+
+  // 极验滑块验证码配置
+  GEETEST: {
+    LOGIN_KEY: process.env.GEETEST_LOGIN_KEY,
+    VALIDATE_PATH: '/validate',
+  },
 } as const;
 
 

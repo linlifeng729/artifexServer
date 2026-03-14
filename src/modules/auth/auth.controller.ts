@@ -28,8 +28,8 @@ export class AuthController {
 
   /**
    * 发送验证码
-   * 
-   * @param sendCodeDto 发送验证码数据传输对象，包含手机号
+   * 需要先通过滑块验证码校验
+   * @param sendCodeDto 发送验证码数据传输对象，包含手机号和滑块验证码
    */
   @Public()
   @Post('send/verificationcode')

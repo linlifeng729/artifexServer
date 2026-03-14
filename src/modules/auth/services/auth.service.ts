@@ -1,8 +1,12 @@
 import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { randomUUID } from 'crypto';
+import { HttpService } from '@nestjs/axios';
+import { ICrypto } from '@/common/utils/crypto';
+import { HASH_ALGORITHMS, ENCODINGS } from '@/common/types/crypto';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { SendVerificationCodeDto } from '@/modules/auth/dto/send-verificationcode.dto';
 import { UserService } from '@/modules/user/services/user.service';
@@ -17,8 +21,10 @@ import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     private readonly userService: UserService,
     private readonly tencentSmsService: TencentSmsService,
+    private readonly httpService: HttpService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly dataSource: DataSource,
@@ -61,10 +67,13 @@ export class AuthService {
 
   /**
    * 发送验证码
-   * @param sendCodeDto 发送验证码数据传输对象，包含手机号
+   * @param sendCodeDto 发送验证码数据传输对象，包含手机号和滑块验证码
    */
   async sendSmsCode(sendCodeDto: SendVerificationCodeDto): Promise<ApiResponse<boolean>> {
     try {
+      // 校验滑块验证码
+      await this.validateGeetestCaptcha(sendCodeDto);
+
       // 查找或创建用户记录
       const phoneHash = this.encryptionService.hashPhone(sendCodeDto.phone);
       let user = await this.userRepository.findOne({ where: { phoneHash } });
@@ -232,6 +241,46 @@ export class AuthService {
         throw error;
       }
       throw new BadRequestException('无效的访问令牌');
+    }
+  }
+
+  /**
+   * 校验极验滑块验证码
+   * @param captchaData 滑块验证码数据
+   */
+  private async validateGeetestCaptcha(captchaData: SendVerificationCodeDto): Promise<void> {
+    const { captcha_id, lot_number, captcha_output, pass_token, gen_time } = captchaData;
+
+    // 获取极验配置
+    const geetestKey = this.configService.get<string>('GEETEST_LOGIN_KEY');
+    const geetestDomain = this.configService.get<string>('GEETEST_LOGIN_DOMAIN');
+
+    // 生成 sign_token
+    const signToken = ICrypto.createHmac(lot_number, geetestKey!, HASH_ALGORITHMS.SHA256, ENCODINGS.HEX)
+
+    try {
+      await this.httpService.axiosRef.post(
+        `${geetestDomain}${AUTH_CONSTANTS.GEETEST.VALIDATE_PATH}`,
+        new URLSearchParams({
+          lot_number,
+          captcha_output,
+          pass_token,
+          gen_time,
+          captcha_id,
+          sign_token: signToken,
+        }).toString(),
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        }
+      );
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof InternalServerErrorException) {
+        throw error;
+      }
+      throw new BadRequestException('滑块验证失败，请重试');
     }
   }
 }
