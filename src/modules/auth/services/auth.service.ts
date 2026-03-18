@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { HttpService } from '@nestjs/axios';
+import { LoggerService } from '@nestjs/common';
 import { ICrypto } from '@/common/utils/crypto';
 import { HASH_ALGORITHMS, ENCODINGS } from '@/common/types/crypto';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
@@ -33,6 +34,7 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     private readonly dataSource: DataSource,
     private readonly encryptionService: EncryptionService,
+    private readonly logger: LoggerService,
   ) {}
 
   /**
@@ -252,6 +254,11 @@ export class AuthService {
 
         return ResponseHelper.success(result, '验证码验证成功');
       } catch (error) {
+        this.logger.error(
+          `验证码验证失败: ${error.message}`,
+          error.stack,
+          'AuthService.verifyCode',
+        );
         return ResponseHelper.error('验证失败，请稍后重试', null);
       }
     });

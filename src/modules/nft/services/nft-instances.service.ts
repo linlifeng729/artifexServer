@@ -36,7 +36,7 @@ export class NftInstancesService {
     userId: number,
   ): Promise<ApiResponse<NftInstanceResponseDto>> {
     try {
-      await this.nftTypesService._validateNftTypeExists(
+      await this.nftTypesService.validateNftTypeExists(
         createNftInstanceDto.nftId,
       );
 

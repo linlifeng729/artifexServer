@@ -200,7 +200,7 @@ export class NftTypesService {
   }
 
   /** 验证NFT类型是否存在且可用 */
-  async _validateNftTypeExists(nftId: number): Promise<Nft> {
+  async validateNftTypeExists(nftId: number): Promise<Nft> {
     const nft = await this.nftRepository.findOne({
       where: { id: nftId, status: NFT_STATUS.ACTIVE },
     });
