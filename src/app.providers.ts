@@ -32,4 +32,3 @@ export const appProviders = [
     useClass: HttpExceptionFilter,
   },
 ];
-

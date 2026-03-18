@@ -37,7 +37,7 @@ export class ResponseHelper {
     total: number,
     page: number,
     limit: number,
-    message: string = '查询成功'
+    message: string = '查询成功',
   ): ApiResponse<{
     list: T[];
     total: number;
@@ -53,7 +53,7 @@ export class ResponseHelper {
         limit,
         totalPages: Math.ceil(total / limit),
       },
-      message
+      message,
     );
   }
 }

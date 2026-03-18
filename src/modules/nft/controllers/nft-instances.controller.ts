@@ -20,26 +20,33 @@ import { ApiResponse } from '@/common/interceptors/response.interceptor';
  */
 @Controller('api/nft-instances')
 export class NftInstancesController {
-  constructor(
-    private readonly nftInstancesService: NftInstancesService,
-  ) {}
+  constructor(private readonly nftInstancesService: NftInstancesService) {}
 
   /** 发布NFT实例（用户鉴权） */
   @Post()
-  async publishNftInstance(    
+  async publishNftInstance(
     @Body() createNftInstanceDto: CreateNftInstanceDto,
     @Request() request: any,
   ): Promise<ApiResponse<NftInstanceResponseDto>> {
     const userId = request.user.userId;
-    return await this.nftInstancesService.createNftInstance(createNftInstanceDto, userId);
+    return await this.nftInstancesService.createNftInstance(
+      createNftInstanceDto,
+      userId,
+    );
   }
 
   /** 获取NFT实例列表（公开） */
   @Public()
   @Get()
-  async getNftInstanceList(
-    @Query() queryDto: QueryNftInstancesDto,
-  ): Promise<ApiResponse<any>> {
+  async getNftInstanceList(@Query() queryDto: QueryNftInstancesDto): Promise<
+    ApiResponse<{
+      list: NftInstanceResponseDto[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }>
+  > {
     return await this.nftInstancesService.getNftInstanceList(queryDto);
   }
 
@@ -48,9 +55,20 @@ export class NftInstancesController {
   async getMyNftInstanceList(
     @Request() request: any,
     @Query() queryDto: QueryNftInstancesDto,
-  ): Promise<ApiResponse<any>> {
+  ): Promise<
+    ApiResponse<{
+      list: NftInstanceResponseDto[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }>
+  > {
     const userId = request.user.userId;
-    return await this.nftInstancesService.getNftInstanceListByOwner(userId, queryDto);
+    return await this.nftInstancesService.getNftInstanceListByOwner(
+      userId,
+      queryDto,
+    );
   }
 
   /** 获取NFT实例详情（公开） */

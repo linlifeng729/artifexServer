@@ -42,6 +42,9 @@ export class JwtAuthGuard implements CanActivate {
       request.user = user;
       return true;
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       throw new UnauthorizedException('无效的访问令牌');
     }
   }

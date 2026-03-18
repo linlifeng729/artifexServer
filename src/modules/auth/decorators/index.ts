@@ -8,4 +8,3 @@ export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 
 /** 标记路由仅允许管理员访问，需配合 AdminOnlyGuard 使用 */
 export const AdminOnly = () => SetMetadata(ADMIN_ONLY_KEY, true);
-

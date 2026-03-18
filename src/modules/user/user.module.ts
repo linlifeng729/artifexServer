@@ -12,7 +12,7 @@ import { EncryptionService } from '@/modules/user/services/encryption.service';
 @Module({
   imports: [
     // 注册用户实体
-    TypeOrmModule.forFeature([User])
+    TypeOrmModule.forFeature([User]),
   ],
   controllers: [UserController],
   providers: [UserService, EncryptionService],

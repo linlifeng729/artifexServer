@@ -1,12 +1,12 @@
-import { 
-  Controller, 
-  Get, 
-  Put, 
-  Delete, 
-  Body, 
-  Param, 
-  Query, 
-  ParseIntPipe, 
+import {
+  Controller,
+  Get,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
   ParseUUIDPipe,
   HttpCode,
   DefaultValuePipe,
@@ -14,6 +14,12 @@ import {
 import { UserService } from '@/modules/user/services/user.service';
 import { UpdateUserDto } from '@/modules/user/dto';
 import { USER_CONSTANTS } from '@/modules/user/constants';
+import { ApiResponse } from '@/common/interceptors/response.interceptor';
+import {
+  PublicUser,
+  UserPaginatedResult,
+  UserDeleteResult,
+} from '@/modules/user/types/user.types';
 
 /**
  * 用户控制器
@@ -21,39 +27,47 @@ import { USER_CONSTANTS } from '@/modules/user/constants';
  */
 @Controller('api/users')
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   /**
    * 获取所有用户（分页）
-   * 
+   *
    * @param page 页码，默认为1
    * @param limit 每页数量，默认为10，最大100
    */
   @Get()
   async getUserList(
-    @Query('page', new DefaultValuePipe(USER_CONSTANTS.PAGINATION.DEFAULT_PAGE), ParseIntPipe) 
+    @Query(
+      'page',
+      new DefaultValuePipe(USER_CONSTANTS.PAGINATION.DEFAULT_PAGE),
+      ParseIntPipe,
+    )
     page: number,
-    @Query('limit', new DefaultValuePipe(USER_CONSTANTS.PAGINATION.DEFAULT_LIMIT), ParseIntPipe) 
+    @Query(
+      'limit',
+      new DefaultValuePipe(USER_CONSTANTS.PAGINATION.DEFAULT_LIMIT),
+      ParseIntPipe,
+    )
     limit: number,
-  ) {
+  ): Promise<ApiResponse<UserPaginatedResult>> {
     return await this.userService.getUserList(page, limit);
   }
 
   /**
    * 根据ID获取用户信息
-   * 
+   *
    * @param id 用户的UUID标识符
    */
   @Get(':id')
-  async getUserById(@Param('id', ParseUUIDPipe) id: string) {
+  async getUserById(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ApiResponse<PublicUser | null>> {
     return await this.userService.getUserById(id);
   }
 
   /**
    * 更新用户信息
-   * 
+   *
    * @param id 用户的UUID标识符
    * @param updateUserDto 更新用户信息的数据传输对象
    */
@@ -61,18 +75,20 @@ export class UserController {
   async updateUser(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
-  ) {
+  ): Promise<ApiResponse<PublicUser | null>> {
     return await this.userService.updateUser(id, updateUserDto);
   }
 
   /**
    * 删除用户（软删除）
-   * 
+   *
    * @param id 用户的UUID标识符
    */
   @Delete(':id')
   @HttpCode(204)
-  async deleteUser(@Param('id', ParseUUIDPipe) id: string) {
+  async deleteUser(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<ApiResponse<UserDeleteResult>> {
     return await this.userService.deleteUser(id);
   }
 }

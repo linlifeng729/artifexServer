@@ -49,18 +49,23 @@ export class TencentSmsService {
   private _getSmsConfig(): TencentSmsConfig {
     const requiredConfigs = [
       'TENCENT_SECRET_ID',
-      'TENCENT_SECRET_KEY', 
+      'TENCENT_SECRET_KEY',
       'TENCENT_SMS_SDK_APP_ID',
       'TENCENT_SMS_SIGN_NAME',
       'TENCENT_SMS_TEMPLATE_ID',
-      'TENCENT_SMS_REGION'
+      'TENCENT_SMS_REGION',
     ];
 
     // 检查所有必需的配置是否存在
-    const missingConfigs = requiredConfigs.filter(key => !this.configService.get<string>(key));
-    
+    const missingConfigs = requiredConfigs.filter(
+      (key) => !this.configService.get<string>(key),
+    );
+
     if (missingConfigs.length > 0) {
-      this.loggingService.error('腾讯云短信配置缺失: ', missingConfigs.join(','));
+      this.loggingService.error(
+        '腾讯云短信配置缺失: ',
+        missingConfigs.join(','),
+      );
       throw new InternalServerErrorException('短信服务配置不完整');
     }
 
@@ -70,7 +75,7 @@ export class TencentSmsService {
       sdkAppId: this.configService.get<string>('TENCENT_SMS_SDK_APP_ID')!,
       signName: this.configService.get<string>('TENCENT_SMS_SIGN_NAME')!,
       templateId: this.configService.get<string>('TENCENT_SMS_TEMPLATE_ID')!,
-      region: this.configService.get<string>('TENCENT_SMS_REGION')!
+      region: this.configService.get<string>('TENCENT_SMS_REGION')!,
     };
   }
 
@@ -88,7 +93,7 @@ export class TencentSmsService {
         region: this.smsConfig.region,
         profile: {
           httpProfile: {
-            endpoint: "sms.tencentcloudapi.com",
+            endpoint: 'sms.tencentcloudapi.com',
           },
         },
       };
@@ -107,11 +112,16 @@ export class TencentSmsService {
    * @param code 验证码
    * @returns 发送结果
    */
-  async sendSmsCode(phone: string, code: string): Promise<ApiResponse<SmsData>> {
+  async sendSmsCode(
+    phone: string,
+    code: string,
+  ): Promise<ApiResponse<SmsData>> {
     try {
       // 确保手机号包含国际区号
-      const formattedPhone = phone.startsWith('+') ? phone : `${AUTH_CONSTANTS.PHONE.INTERNATIONAL_PREFIX}${phone}`;
-      
+      const formattedPhone = phone.startsWith('+')
+        ? phone
+        : `${AUTH_CONSTANTS.PHONE.INTERNATIONAL_PREFIX}${phone}`;
+
       const params = {
         // 短信应用ID
         SmsSdkAppId: this.smsConfig.sdkAppId,
@@ -122,42 +132,46 @@ export class TencentSmsService {
         // 下发手机号码，采用E.164标准，+[国家或地区码][手机号]
         PhoneNumberSet: [formattedPhone],
         // 模板参数：[验证码, 有效期分钟数]
-        TemplateParamSet: [code, AUTH_CONSTANTS.SMS.TEMPLATE_PARAMS.EXPIRATION_MINUTES],
+        TemplateParamSet: [
+          code,
+          AUTH_CONSTANTS.SMS.TEMPLATE_PARAMS.EXPIRATION_MINUTES,
+        ],
       };
 
       const response = await this.smsClient.SendSms(params);
-      
-      this.loggingService.log(`腾讯云短信发送响应: ${JSON.stringify(response)}`);
+
+      this.loggingService.log(
+        `腾讯云短信发送响应: ${JSON.stringify(response)}`,
+      );
 
       // 检查发送结果
       if (response.SendStatusSet && response.SendStatusSet.length > 0) {
         const sendStatus = response.SendStatusSet[0];
-        
+
         if (sendStatus.Code === 'Ok') {
           return ResponseHelper.success(
             { requestId: response.RequestId },
-            '短信发送成功'
+            '短信发送成功',
           );
         } else {
-          this.loggingService.error(`短信发送失败 Code: ${sendStatus.Code}, Message: ${sendStatus.Message}`, response.RequestId);
-          return ResponseHelper.error(
-            `短信发送失败: ${sendStatus.Message}`,
-            { requestId: response.RequestId, error: sendStatus }
+          this.loggingService.error(
+            `短信发送失败 Code: ${sendStatus.Code}, Message: ${sendStatus.Message}`,
+            response.RequestId,
           );
+          return ResponseHelper.error(`短信发送失败: ${sendStatus.Message}`, {
+            requestId: response.RequestId,
+            error: sendStatus,
+          });
         }
       } else {
         this.loggingService.error('短信发送响应格式异常', response.RequestId);
-        return ResponseHelper.error(
-          '短信发送响应格式异常',
-          { requestId: response.RequestId }
-        );
+        return ResponseHelper.error('短信发送响应格式异常', {
+          requestId: response.RequestId,
+        });
       }
     } catch (error) {
       this.loggingService.error('短信发送异常:', error);
-      return ResponseHelper.error(
-        '短信发送异常，请稍后重试',
-        { error }
-      );
+      return ResponseHelper.error('短信发送异常，请稍后重试', { error });
     }
   }
 }

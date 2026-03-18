@@ -1,7 +1,18 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { Nft } from './nft.entity';
 import { User } from '../../user/entities/user.entity';
-import { NFT_INSTANCE_STATUS_VALUES, NftInstanceStatus } from '@/modules/nft/constants';
+import {
+  NFT_INSTANCE_STATUS_VALUES,
+  NftInstanceStatus,
+} from '@/modules/nft/constants';
 
 /**
  * NFT实例实体
@@ -12,63 +23,63 @@ export class NftInstance {
   @PrimaryGeneratedColumn({ comment: 'NFT实例ID' })
   id: number;
 
-  @Column({ 
+  @Column({
     name: 'nftId',
-    type: 'int', 
-    nullable: false, 
-    comment: '关联的NFT类型ID' 
+    type: 'int',
+    nullable: false,
+    comment: '关联的NFT类型ID',
   })
   nftId: number;
 
-  @Column({ 
+  @Column({
     name: 'nftNumber',
-    type: 'varchar', 
+    type: 'varchar',
     length: 50,
-    nullable: true, 
-    comment: 'NFT编号' 
+    nullable: true,
+    comment: 'NFT编号',
   })
   nftNumber: string;
 
-  @Column({ 
+  @Column({
     name: 'ownerId',
-    type: 'int', 
-    nullable: true, 
-    comment: '拥有者用户ID' 
+    type: 'int',
+    nullable: true,
+    comment: '拥有者用户ID',
   })
   ownerId: number;
 
-  @Column({ 
-    type: 'int', 
-    nullable: false, 
+  @Column({
+    type: 'int',
+    nullable: false,
     default: 0,
-    comment: '当前价格（分）' 
+    comment: '当前价格（分）',
   })
   price: number;
 
-  @Column({ 
-    type: 'enum', 
-    enum: NFT_INSTANCE_STATUS_VALUES, 
+  @Column({
+    type: 'enum',
+    enum: NFT_INSTANCE_STATUS_VALUES,
     default: 'available',
-    comment: '可售、已售、预留' 
+    comment: '可售、已售、预留',
   })
   status: NftInstanceStatus;
 
-  @Column({ 
-    type: 'text', 
-    nullable: true, 
-    comment: '备注信息' 
+  @Column({
+    type: 'text',
+    nullable: true,
+    comment: '备注信息',
   })
   remark: string;
 
-  @CreateDateColumn({ 
-    type: 'timestamp', 
-    comment: '创建时间' 
+  @CreateDateColumn({
+    type: 'timestamp',
+    comment: '创建时间',
   })
   createdAt: Date;
 
-  @UpdateDateColumn({ 
-    type: 'timestamp', 
-    comment: '更新时间' 
+  @UpdateDateColumn({
+    type: 'timestamp',
+    comment: '更新时间',
   })
   updatedAt: Date;
 

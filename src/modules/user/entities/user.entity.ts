@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { USER_CONSTANTS, UserRole } from '@/modules/user/constants';
 
 /**
@@ -10,38 +16,38 @@ export class User {
   @PrimaryGeneratedColumn()
   userId: number;
 
-  @Column({ 
-    type: 'varchar', 
-    length: USER_CONSTANTS.CONSTRAINTS.ID_LENGTH, 
-    unique: true, 
-    comment: '用户UUID' 
+  @Column({
+    type: 'varchar',
+    length: USER_CONSTANTS.CONSTRAINTS.ID_LENGTH,
+    unique: true,
+    comment: '用户UUID',
   })
   id: string;
 
-  @Column({ 
-    length: USER_CONSTANTS.CONSTRAINTS.PHONE_LENGTH, 
-    comment: '加密的手机号' 
+  @Column({
+    length: USER_CONSTANTS.CONSTRAINTS.PHONE_LENGTH,
+    comment: '加密的手机号',
   })
   phone: string;
 
-  @Column({ 
-    unique: true, 
-    length: USER_CONSTANTS.CONSTRAINTS.PHONE_HASH_LENGTH, 
-    comment: '手机号哈希值' 
+  @Column({
+    unique: true,
+    length: USER_CONSTANTS.CONSTRAINTS.PHONE_HASH_LENGTH,
+    comment: '手机号哈希值',
   })
   phoneHash: string;
 
-  @Column({ 
-    nullable: true, 
+  @Column({
+    nullable: true,
     length: USER_CONSTANTS.CONSTRAINTS.NICKNAME_MAX_LENGTH,
-    comment: '用户昵称'
+    comment: '用户昵称',
   })
   nickname?: string;
 
-  @Column({ 
-    nullable: true, 
-    length: USER_CONSTANTS.CONSTRAINTS.VERIFICATION_CODE_LENGTH, 
-    comment: '验证码' 
+  @Column({
+    nullable: true,
+    length: USER_CONSTANTS.CONSTRAINTS.VERIFICATION_CODE_LENGTH,
+    comment: '验证码',
   })
   verificationCode?: string;
 
@@ -51,11 +57,11 @@ export class User {
   @Column({ type: 'timestamp', nullable: true, comment: '上次发送验证码时间' })
   lastCodeSentAt?: Date;
 
-  @Column({ 
-    type: 'enum', 
-    enum: Object.values(USER_CONSTANTS.ROLES), 
+  @Column({
+    type: 'enum',
+    enum: Object.values(USER_CONSTANTS.ROLES),
     default: USER_CONSTANTS.ROLES.USER,
-    comment: `用户角色：${USER_CONSTANTS.ROLES.USER}-普通用户，${USER_CONSTANTS.ROLES.ADMIN}-管理员`
+    comment: `用户角色：${USER_CONSTANTS.ROLES.USER}-普通用户，${USER_CONSTANTS.ROLES.ADMIN}-管理员`,
   })
   role: UserRole;
 

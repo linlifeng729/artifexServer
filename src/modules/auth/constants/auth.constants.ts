@@ -10,26 +10,26 @@ export const AUTH_CONSTANTS = {
     EXPIRATION_MINUTES: 5,
     SEND_INTERVAL_SECONDS: 60,
   },
-  
+
   // JWT 相关
   JWT: {
     ADMIN_EXPIRATION: '7d',
     USER_EXPIRATION: '30d',
     BEARER_PREFIX: 'Bearer',
   },
-  
+
   // 手机号验证
   PHONE: {
     REGEX: /^1[3-9]\d{9}$/,
     INTERNATIONAL_PREFIX: '+86',
   },
-  
+
   // 角色定义
   ROLES: {
     ADMIN: 'admin',
     USER: 'user',
   },
-  
+
   // 短信模板参数
   SMS: {
     TEMPLATE_PARAMS: {
@@ -43,5 +43,3 @@ export const AUTH_CONSTANTS = {
     VALIDATE_PATH: '/validate',
   },
 } as const;
-
-

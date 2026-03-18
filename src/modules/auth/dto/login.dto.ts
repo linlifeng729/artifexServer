@@ -11,9 +11,13 @@ export class LoginDto {
   phone: string;
 
   @IsString({ message: '验证码必须是字符串' })
-  @Length(AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH, AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH, { 
-    message: '验证码必须是6位数字' 
-  })
+  @Length(
+    AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH,
+    AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH,
+    {
+      message: '验证码必须是6位数字',
+    },
+  )
   @Matches(/^\d{6}$/, { message: '验证码必须是6位数字' })
   verificationCode: string;
 }

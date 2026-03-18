@@ -8,15 +8,7 @@ import { NftModule } from '@/modules/nft/nft.module';
  * 用于集中管理所有业务模块，新增模块时在此处添加
  */
 @Module({
-  imports: [
-    UserModule,
-    AuthModule,
-    NftModule,
-  ],
-  exports: [
-    UserModule,
-    AuthModule,
-    NftModule,
-  ],
+  imports: [UserModule, AuthModule, NftModule],
+  exports: [UserModule, AuthModule, NftModule],
 })
 export class BusinessModule {}

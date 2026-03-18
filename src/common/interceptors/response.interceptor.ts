@@ -22,13 +22,22 @@ export interface ApiResponse<T = any> {
  * 统一处理所有API的响应格式
  */
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<T, ApiResponse<T>> {
-
-  intercept(context: ExecutionContext, next: CallHandler): Observable<ApiResponse<T>> {
+export class ResponseInterceptor<T>
+  implements NestInterceptor<T, ApiResponse<T>>
+{
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<ApiResponse<T>> {
     return next.handle().pipe(
       map((data) => {
         // 如果响应数据已经是标准格式，直接返回
-        if (data && typeof data === 'object' && 'success' in data && 'message' in data) {
+        if (
+          data &&
+          typeof data === 'object' &&
+          'success' in data &&
+          'message' in data
+        ) {
           return {
             ...data,
             timestamp: new Date().toISOString(),

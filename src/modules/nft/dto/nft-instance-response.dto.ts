@@ -14,7 +14,7 @@ export class NftInstanceResponseDto {
   remark?: string;
   createdAt: Date;
   updatedAt: Date;
-  
+
   // NFT类型信息（如果包含关联查询）
   nft?: {
     id: number;
@@ -23,7 +23,7 @@ export class NftInstanceResponseDto {
     type: string;
     status: NftStatus;
   };
-  
+
   // 拥有者信息（如果包含关联查询）
   owner?: {
     id: string;

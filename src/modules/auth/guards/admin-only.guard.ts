@@ -41,7 +41,7 @@ export class AdminOnlyGuard implements CanActivate {
     if (!user) {
       throw new ForbiddenException('用户信息缺失');
     }
-    
+
     if (user.role !== AUTH_CONSTANTS.ROLES.ADMIN) {
       throw new ForbiddenException('权限不足，请联系管理员');
     }

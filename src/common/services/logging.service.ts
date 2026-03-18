@@ -71,16 +71,28 @@ export class LoggingService implements LoggerService {
   constructor(private readonly configService: ConfigService) {
     this.config = {
       // 详细信息记录配置
-      logRequestBody: this.configService.get<string>('LOG_REQUEST_BODY') === this.configValueConstant,
-      logResponseBody: this.configService.get<string>('LOG_RESPONSE_BODY') === this.configValueConstant,
-      logRequestHeaders: this.configService.get<string>('LOG_REQUEST_HEADERS') === this.configValueConstant,
-      logQueryParams: this.configService.get<string>('LOG_QUERY_PARAMS') === this.configValueConstant,
+      logRequestBody:
+        this.configService.get<string>('LOG_REQUEST_BODY') ===
+        this.configValueConstant,
+      logResponseBody:
+        this.configService.get<string>('LOG_RESPONSE_BODY') ===
+        this.configValueConstant,
+      logRequestHeaders:
+        this.configService.get<string>('LOG_REQUEST_HEADERS') ===
+        this.configValueConstant,
+      logQueryParams:
+        this.configService.get<string>('LOG_QUERY_PARAMS') ===
+        this.configValueConstant,
 
       // 性能监控配置
-      performanceThreshold: parseInt(this.configService.get<string>('PERFORMANCE_THRESHOLD')!),
+      performanceThreshold: parseInt(
+        this.configService.get<string>('PERFORMANCE_THRESHOLD')!,
+      ),
 
       // 敏感字段脱敏
-      sensitiveFields: this.configService.get<string>('LOG_SENSITIVE_FIELDS')!.split(','),
+      sensitiveFields: this.configService
+        .get<string>('LOG_SENSITIVE_FIELDS')!
+        .split(','),
     };
   }
 
@@ -93,29 +105,48 @@ export class LoggingService implements LoggerService {
       url: request.url,
       ip: request.ip || 'unknown',
       userAgent: request.headers['user-agent'],
-      query: this.config.logQueryParams && Object.keys(request.query).length > 0 ? request.query : undefined,
-      body: this.config.logRequestBody && Object.keys(request.body || {}).length > 0 ? this.sanitizeBody(request.body) : undefined,
-      headers: this.config.logRequestHeaders ? this.sanitizeHeaders(request.headers) : undefined,
+      query:
+        this.config.logQueryParams && Object.keys(request.query).length > 0
+          ? request.query
+          : undefined,
+      body:
+        this.config.logRequestBody && Object.keys(request.body || {}).length > 0
+          ? this.sanitizeBody(request.body)
+          : undefined,
+      headers: this.config.logRequestHeaders
+        ? this.sanitizeHeaders(request.headers)
+        : undefined,
       timestamp: new Date().toISOString(),
       requestId: requestId,
     };
 
     this.logger.log(
       `[请求开始] ${request.method} ${request.url} - IP地址: ${logInfo.ip}`,
-      logInfo
+      logInfo,
     );
   }
 
   /**
    * 记录成功响应日志
    */
-  logResponse(request: Request, response: Response, responseTime: number, requestId?: string, responseBody?: any): void {
+  logResponse(
+    request: Request,
+    response: Response,
+    responseTime: number,
+    requestId?: string,
+    responseBody?: any,
+  ): void {
     const logInfo: ResponseLogInfo = {
       method: request.method,
       url: request.url,
       statusCode: response.statusCode,
       responseTime,
-      responseBody: this.config.logResponseBody && responseBody && Object.keys(responseBody).length > 0 ? this.sanitizeBody(responseBody) : undefined,
+      responseBody:
+        this.config.logResponseBody &&
+        responseBody &&
+        Object.keys(responseBody).length > 0
+          ? this.sanitizeBody(responseBody)
+          : undefined,
       timestamp: new Date().toISOString(),
       requestId: requestId,
     };
@@ -124,12 +155,12 @@ export class LoggingService implements LoggerService {
     if (responseTime > this.config.performanceThreshold) {
       this.logger.warn(
         `[慢请求警告] ${request.method} ${request.url} - 状态码: ${response.statusCode} (响应时间: ${responseTime}ms)`,
-        logInfo
+        logInfo,
       );
     } else {
       this.logger.log(
         `[请求完成] ${request.method} ${request.url} - 状态码: ${response.statusCode} (响应时间: ${responseTime}ms)`,
-        logInfo
+        logInfo,
       );
     }
   }
@@ -137,13 +168,25 @@ export class LoggingService implements LoggerService {
   /**
    * 记录错误响应日志
    */
-  logError(request: Request, response: Response, responseTime: number, error: any, requestId?: string, responseBody?: any): void {
+  logError(
+    request: Request,
+    response: Response,
+    responseTime: number,
+    error: any,
+    requestId?: string,
+    responseBody?: any,
+  ): void {
     const logInfo: ErrorLogInfo = {
       method: request.method,
       url: request.url,
       statusCode: error.status || 500,
       responseTime,
-      responseBody: this.config.logResponseBody && responseBody && Object.keys(responseBody).length > 0 ? this.sanitizeBody(responseBody) : undefined,
+      responseBody:
+        this.config.logResponseBody &&
+        responseBody &&
+        Object.keys(responseBody).length > 0
+          ? this.sanitizeBody(responseBody)
+          : undefined,
       error: {
         name: error.name,
         message: error.message,
@@ -155,7 +198,7 @@ export class LoggingService implements LoggerService {
 
     this.logger.error(
       `[请求错误] ${request.method} ${request.url} - 状态码: ${logInfo.statusCode} (响应时间: ${responseTime}ms) - 错误信息: ${error.message}`,
-      logInfo
+      logInfo,
     );
   }
 
@@ -164,13 +207,13 @@ export class LoggingService implements LoggerService {
    */
   private sanitizeHeaders(headers: any): any {
     const sanitized = { ...headers };
-    
-    this.config.sensitiveFields.forEach(field => {
+
+    this.config.sensitiveFields.forEach((field) => {
       if (sanitized[field]) {
         sanitized[field] = '[REDACTED]';
       }
     });
-    
+
     return sanitized;
   }
 
@@ -181,15 +224,15 @@ export class LoggingService implements LoggerService {
     if (!body || typeof body !== 'object') {
       return body;
     }
-    
+
     const sanitized = { ...body };
-    
-    this.config.sensitiveFields.forEach(field => {
+
+    this.config.sensitiveFields.forEach((field) => {
       if (sanitized[field]) {
         sanitized[field] = '[REDACTED]';
       }
     });
-    
+
     return sanitized;
   }
 

@@ -24,25 +24,27 @@ export const NFT_INSTANCE_STATUS = {
  * NFT排序选项枚举
  */
 export const NFT_SORT_OPTIONS = {
-  LATEST: 'latest' as const,      // 最新发布（默认）
-  PRICE_LOW_TO_HIGH: 'price_low_to_high' as const,  // 最低价格
-  PRICE_HIGH_TO_LOW: 'price_high_to_low' as const,  // 最高价格
+  LATEST: 'latest' as const, // 最新发布（默认）
+  PRICE_LOW_TO_HIGH: 'price_low_to_high' as const, // 最低价格
+  PRICE_HIGH_TO_LOW: 'price_high_to_low' as const, // 最高价格
 } as const;
 
 /**
  * NFT状态类型定义
  */
-export type NftStatus = typeof NFT_STATUS[keyof typeof NFT_STATUS];
+export type NftStatus = (typeof NFT_STATUS)[keyof typeof NFT_STATUS];
 
 /**
  * NFT实例状态类型定义
  */
-export type NftInstanceStatus = typeof NFT_INSTANCE_STATUS[keyof typeof NFT_INSTANCE_STATUS];
+export type NftInstanceStatus =
+  (typeof NFT_INSTANCE_STATUS)[keyof typeof NFT_INSTANCE_STATUS];
 
 /**
  * NFT排序选项类型定义
  */
-export type NftSortOption = typeof NFT_SORT_OPTIONS[keyof typeof NFT_SORT_OPTIONS];
+export type NftSortOption =
+  (typeof NFT_SORT_OPTIONS)[keyof typeof NFT_SORT_OPTIONS];
 
 /**
  * 状态枚举数组（用于验证）

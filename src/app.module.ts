@@ -56,10 +56,8 @@ import { appProviders } from '@/app.providers';
     BusinessModule,
   ],
 
-  controllers: [
-    AppController,
-  ],
+  controllers: [AppController],
 
   providers: appProviders,
 })
-export class AppModule { }
+export class AppModule {}

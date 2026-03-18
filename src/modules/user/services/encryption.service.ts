@@ -15,11 +15,11 @@ export class EncryptionService {
   // 初始化向量 (16字节)
   private readonly iv: Buffer;
 
-  constructor(
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     // 从配置服务获取加密密钥，必须在环境变量中配置
-    const encryptionKey = this.configService.get<string>('PHONE_ENCRYPTION_KEY');
+    const encryptionKey = this.configService.get<string>(
+      'PHONE_ENCRYPTION_KEY',
+    );
     this.encryptionKey = Buffer.from(encryptionKey!, 'hex');
 
     // 从配置服务获取初始化向量，必须在环境变量中配置
@@ -34,15 +34,18 @@ export class EncryptionService {
    */
   encryptPhone(phone: string): string {
     try {
-      const cipher = crypto.createCipheriv('aes-256-cbc', this.encryptionKey, this.iv);
+      const cipher = crypto.createCipheriv(
+        'aes-256-cbc',
+        this.encryptionKey,
+        this.iv,
+      );
       let encrypted = cipher.update(phone, 'utf8', 'hex');
       encrypted += cipher.final('hex');
       return encrypted;
     } catch (error) {
-      throw new InternalServerErrorException(
-        '手机号加密失败',
-        { cause: error }
-      );
+      throw new InternalServerErrorException('手机号加密失败', {
+        cause: error,
+      });
     }
   }
 
@@ -53,15 +56,18 @@ export class EncryptionService {
    */
   decryptPhone(encryptedPhone: string): string {
     try {
-      const decipher = crypto.createDecipheriv('aes-256-cbc', this.encryptionKey, this.iv);
+      const decipher = crypto.createDecipheriv(
+        'aes-256-cbc',
+        this.encryptionKey,
+        this.iv,
+      );
       let decrypted = decipher.update(encryptedPhone, 'hex', 'utf8');
       decrypted += decipher.final('utf8');
       return decrypted;
     } catch (error) {
-      throw new InternalServerErrorException(
-        '手机号解密失败',
-        { cause: error }
-      );
+      throw new InternalServerErrorException('手机号解密失败', {
+        cause: error,
+      });
     }
   }
 
@@ -72,6 +78,9 @@ export class EncryptionService {
    * @returns 手机号的哈希值
    */
   hashPhone(phone: string): string {
-    return crypto.createHash('sha256').update(phone + this.encryptionKey.toString('hex')).digest('hex');
+    return crypto
+      .createHash('sha256')
+      .update(phone + this.encryptionKey.toString('hex'))
+      .digest('hex');
   }
 }
