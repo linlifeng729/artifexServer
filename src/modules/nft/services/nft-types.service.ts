@@ -64,28 +64,6 @@ export class NftTypesService {
     }
   }
 
-  /** 根据ID获取NFT类型 */
-  async findNftTypeById(id: number): Promise<ApiResponse<NftResponseDto>> {
-    try {
-      const nft = await this.nftRepository.findOne({ where: { id } });
-
-      if (!nft) {
-        throw new NotFoundException('NFT不存在');
-      }
-
-      const nftResponse = NftResponseDto.fromEntity(nft);
-      return ResponseHelper.success(nftResponse, 'NFT查询成功');
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        'NFT查询失败，请稍后重试',
-        error.message,
-      );
-    }
-  }
-
   /** 查询NFT类型列表 */
   async getNftTypeList(queryDto: QueryNftTypesDto): Promise<
     ApiResponse<{

@@ -3,9 +3,7 @@ import {
   Get,
   Post,
   Body,
-  Param,
   Query,
-  ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
 import { NftTypesService } from '@/modules/nft/services/nft-types.service';
@@ -17,7 +15,6 @@ import {
 import { AdminOnly, Public } from '@/modules/auth/decorators';
 import { AdminOnlyGuard } from '@/modules/auth/guards/admin-only.guard';
 import { ApiResponse } from '@/common/interceptors/response.interceptor';
-import { LoggingService } from '@/common/services/logging.service';
 
 /**
  * NFT类型控制器
@@ -26,7 +23,6 @@ import { LoggingService } from '@/common/services/logging.service';
 export class NftTypesController {
   constructor(
     private readonly nftTypesService: NftTypesService,
-    private readonly loggingService: LoggingService,
   ) {}
 
   /** 创建NFT类型（管理员权限） */
@@ -52,14 +48,5 @@ export class NftTypesController {
     }>
   > {
     return await this.nftTypesService.getNftTypeList(queryDto);
-  }
-
-  /** 获取NFT类型详情（公开） */
-  @Public()
-  @Get(':id')
-  async getNftTypeById(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<ApiResponse<NftResponseDto>> {
-    return await this.nftTypesService.findNftTypeById(id);
   }
 }
