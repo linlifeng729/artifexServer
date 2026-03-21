@@ -12,7 +12,8 @@ import {
 import { PayService } from './services/pay.service';
 import { WechatMPService } from './services/wechat-mp.service';
 import { WechatOAService } from './services/wechat-oa.service';
-import { CreatePayOrderDto, QueryPayOrderDto } from './dto';
+import { QueryPayOrderDto } from './dto/query-pay-order.dto';
+import { CreatePayOrderDto } from './dto/create-pay-order.dto';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt.guard';
 import { CurrentUser } from '@/modules/auth/decorators';
 import { Public } from '@/modules/auth/decorators';
