@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '@/app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -10,11 +11,32 @@ async function bootstrap() {
   // 配置全局验证管道
   app.useGlobalPipes(
     new ValidationPipe({
-      transform: true, // 自动转换请求参数类型
-      whitelist: true, // 只保留DTO中定义的属性
-      forbidNonWhitelisted: true, // 如果请求中包含DTO中未定义的属性，则抛出错误
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
     }),
   );
+
+  // 配置 Swagger 文档
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Artifex API')
+    .setDescription('Artifex API docs')
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: '输入 JWT Token',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
+    .build();
+
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(12600, '0.0.0.0');
 }

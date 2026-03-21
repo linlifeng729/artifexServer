@@ -28,7 +28,7 @@ Usage notes:
 
 <rule>
 <name>backend-rules</name>
-<description>NestJS 后端开发规范：六层架构（Entity/Constants/Types/DTO/Service/Controller）、模块注册、依赖注入、TypeORM 实体定义、class-validator 验证、ResponseHelper 响应格式化。技术栈：NestJS + TypeORM + MySQL + TypeScript。</description>
+<description>NestJS 后端开发规范：六层架构（Entity/Constants/Types/DTO/Service/Controller）、模块注册、依赖注入、TypeORM 实体定义、class-validator 验证、@nestjs/swagger 自动生成 API 文档、ResponseHelper 响应格式化。技术栈：NestJS + TypeORM + MySQL + TypeScript。</description>
 <path>.claude/rules/backend/code-style.md</path>
 <globs>src/modules/**/*.ts</globs>
 </rule>

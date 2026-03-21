@@ -1,24 +1,25 @@
 ---
 name: nestjs-developer
-description: NestJS 后端开发规范和流程指南。用于创建新的业务模块时，包括：数据库表设计、Entity 实体创建、Constants 常量定义、Types 类型定义、DTO 数据传输对象、Services 服务层、Controllers 控制器、Module 模块注册等完整开发流程。触发场景：(1) 创建新的业务模块 (2) 添加新的数据库表 (3) 开发 CRUD 接口 (4) 需要遵循 NestJS 六层架构开发规范
+description: NestJS 后端开发规范和流程指南。用于创建新的业务模块时，包括：数据库表设计、Entity 实体创建、Constants 常量定义、Types 类型定义、DTO 数据传输对象（含 Swagger 装饰器）、Services 服务层、Controllers 控制器（含 Swagger 装饰器）、Module 模块注册等完整开发流程。触发场景：(1) 创建新的业务模块 (2) 添加新的数据库表 (3) 开发 CRUD 接口 (4) 需要遵循 NestJS 六层架构开发规范
 ---
 
 # NestJS 后端开发规范
 
 本 Skill 提供 NestJS 业务模块开发的完整流程指南。
 
-## 完整开发流程（9 步）
+## 完整开发流程（10 步）
 
 ```
-1. 创建数据库表 (SQL)           → database/scripts/
-2. 创建 Entity (实体)           → modules/xxx/entities/
-3. 创建 Constants (常量)         → modules/xxx/constants/
-4. 创建 Types (类型定义)        → modules/xxx/types/
-5. 创建 DTO (数据传输对象)     → modules/xxx/dto/
-6. 创建 Services (服务层)       → modules/xxx/services/
-7. 创建 Controllers (控制器)   → modules/xxx/
-8. 创建 Module (模块定义)       → modules/xxx/xxx.module.ts
-9. 注册 Module                  → modules/business.module.ts
+ 1. 创建数据库表 (SQL)           → database/scripts/
+ 2. 创建 Entity (实体)           → modules/xxx/entities/
+ 3. 创建 Constants (常量)         → modules/xxx/constants/
+ 4. 创建 Types (类型定义)        → modules/xxx/types/
+ 5. 创建 DTO (数据传输对象)     → modules/xxx/dto/
+ 6. 创建 Services (服务层)       → modules/xxx/services/
+ 7. 创建 Controllers (控制器)   → modules/xxx/
+ 8. 创建 Module (模块定义)       → modules/xxx/xxx.module.ts
+ 9. 配置 Swagger 文档             → DTO + Controller 添加装饰器
+10. 注册 Module                  → modules/business.module.ts
 ```
 
 ## 快速开始
@@ -92,23 +93,27 @@ export interface XxxPaginatedResult {
 
 ```typescript
 // src/modules/xxx/dto/create-xxx.dto.ts
-import { IsString, IsEnum, IsNotEmpty, MaxLength, IsOptional, IsNumber, Min, Max } from 'class-validator'
+import { IsString, IsEnum, IsNotEmpty, MaxLength, IsOptional } from 'class-validator'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { XXX_CONSTANTS } from '@/modules/xxx/constants'
 
 export class CreateXxxDto {
+  @ApiProperty({ description: '名称' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(XXX_CONSTANTS.CONSTRAINTS.NAME_MAX_LENGTH)
   name: string
 
-  @IsString()
+  @ApiPropertyOptional({ description: '描述' })
   @IsOptional()
+  @IsString()
   @MaxLength(XXX_CONSTANTS.CONSTRAINTS.DESCRIPTION_MAX_LENGTH)
   description?: string
 
-  @IsEnum(XXX_CONSTANTS.STATUS)
+  @ApiPropertyOptional({ description: '状态', enum: Object.values(XXX_CONSTANTS.STATUS) })
   @IsOptional()
-  status?: number
+  @IsEnum(XXX_CONSTANTS.STATUS)
+  status?: string
 }
 ```
 
@@ -118,7 +123,7 @@ export class CreateXxxDto {
 
 ### Step 7: 创建 Controllers
 
-详见 [controller-template.md](references/controller-template.md)
+详情参考 [controller-template.md](references/controller-template.md)
 
 ### Step 8: 创建 Module
 
@@ -201,21 +206,22 @@ return { success: false, code: 404 }
 
 ### 验证规则
 
-使用 `class-validator`：
+使用 `class-validator` 和 `@nestjs/swagger`：
 
 ```typescript
 import { IsString, IsOptional, IsNumber, Min, Max, IsEnum } from 'class-validator'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class CreateXxxDto {
+  @ApiProperty({ description: '名称' })
   @IsString()
   @MinLength(2)
   name: string
 
-  @IsNumber()
-  @Min(0)
-  @Max(100)
+  @ApiPropertyOptional({ description: '状态', enum: ['active', 'inactive'] })
   @IsOptional()
-  status?: number
+  @IsEnum(['active', 'inactive'])
+  status?: string
 }
 ```
 
@@ -281,16 +287,22 @@ src/
 - [ ] Entity 字段与数据库一致
 - [ ] Constants 包含分页和字段配置
 - [ ] Types 定义完整（Public/Internal 类型）
-- [ ] DTO 添加验证装饰器
+- [ ] DTO 添加 class-validator 验证装饰器
+- [ ] DTO 添加 Swagger @ApiProperty / @ApiPropertyOptional 装饰器
+- [ ] Response DTO 添加 Swagger @ApiProperty 装饰器
 - [ ] Service 使用 ResponseHelper
-- [ ] Controller 添加 JSDoc 注释
+- [ ] Controller 添加 @ApiTags 和 @ApiOperation 装饰器
+- [ ] 需要认证的接口添加 @ApiBearerAuth
 - [ ] 正确使用 @Public / @AdminOnly 装饰器
 - [ ] Module 正确导出
 - [ ] 在 BusinessModule 中注册
 - [ ] 运行 lint 检查代码格式
+- [ ] 启动服务访问 /api/docs 验证 Swagger 文档
 
 ## 参考资料
 
 - [Entity 模板](references/entity-template.md)
-- [Constants -template.md)
--模板](references/constants [六层架构详解](../docs/后端交互设计文档.md)
+- [Constants 模板](references/constants-template.md)
+- [Service 模板](references/service-template.md)
+- [Controller 模板](references/controller-template.md)
+- [六层架构详解](../docs/后端交互设计文档.md)

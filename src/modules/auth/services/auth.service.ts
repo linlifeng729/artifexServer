@@ -300,10 +300,14 @@ export class AuthService {
       'GEETEST_LOGIN_DOMAIN',
     );
 
+    if (!geetestKey || !geetestDomain) {
+      throw new InternalServerErrorException('极验配置错误，请检查环境变量');
+    }
+
     // 生成 sign_token
     const signToken = ICrypto.createHmac(
       lot_number,
-      geetestKey!,
+      geetestKey,
       HASH_ALGORITHMS.SHA256,
       ENCODINGS.HEX,
     );

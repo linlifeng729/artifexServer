@@ -7,44 +7,40 @@ import {
   NftSortOption,
   NFT_SORT_OPTIONS_VALUES,
 } from '@/modules/nft/constants';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * NFT类型查询DTO
  * 用于封装NFT类型列表查询的所有参数
  */
 export class QueryNftTypesDto {
-  /**
-   * NFT状态过滤
-   */
+  @ApiPropertyOptional({ description: 'NFT状态', enum: NFT_STATUS_VALUES })
   @IsOptional()
   @IsEnum(NFT_STATUS_VALUES, {
     message: `状态只能是${NFT_STATUS_VALUES.join('或')}`,
   })
   status?: NftStatus;
 
-  /**
-   * NFT名称模糊搜索
-   */
+  @ApiPropertyOptional({ description: 'NFT名称模糊搜索' })
   @IsOptional()
   @Transform(({ value }) => value?.trim())
   name?: string;
 
-  /**
-   * 排序方式
-   * latest: 最新发布（默认）
-   * price_low_to_high: 最低价格
-   * price_high_to_low: 最高价格
-   */
+  @ApiPropertyOptional({
+    description: '排序方式',
+    enum: NFT_SORT_OPTIONS_VALUES,
+    default: 'latest',
+  })
   @IsOptional()
   @IsEnum(NFT_SORT_OPTIONS_VALUES, {
     message: `排序方式只能是${NFT_SORT_OPTIONS_VALUES.join('或')}`,
   })
   sort?: NftSortOption = 'latest';
 
-  /**
-   * 页码
-   * Query参数为字符串，需要转换为数字
-   */
+  @ApiPropertyOptional({
+    description: '页码',
+    default: PAGINATION_CONSTRAINTS.DEFAULT_PAGE,
+  })
   @IsOptional()
   @Transform(({ value }) =>
     value ? parseInt(value, 10) : PAGINATION_CONSTRAINTS.DEFAULT_PAGE,
@@ -53,10 +49,10 @@ export class QueryNftTypesDto {
   @Min(1, { message: '页码最小值为1' })
   page: number = PAGINATION_CONSTRAINTS.DEFAULT_PAGE;
 
-  /**
-   * 每页条数
-   * Query参数为字符串，需要转换为数字
-   */
+  @ApiPropertyOptional({
+    description: '每页条数',
+    default: PAGINATION_CONSTRAINTS.DEFAULT_LIMIT,
+  })
   @IsOptional()
   @Transform(({ value }) =>
     value ? parseInt(value, 10) : PAGINATION_CONSTRAINTS.DEFAULT_LIMIT,

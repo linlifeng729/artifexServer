@@ -87,14 +87,17 @@ export const XXX_CONSTANTS = {
 }
 
 // Step 2: 创建 DTO - src/modules/xxx/dto/create-xxx.dto.ts
-import { IsString, IsOptional, IsNumber } from 'class-validator'
+import { IsString, IsOptional } from 'class-validator'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class CreateXxxDto {
+  @ApiProperty({ description: '名称' })
   @IsString()
   name: string
 
-  @IsString()
+  @ApiPropertyOptional({ description: '描述' })
   @IsOptional()
+  @IsString()
   description?: string
 }
 
@@ -137,17 +140,27 @@ export class XxxService {
 import { Controller, Get, Post, Body, Query, ParseIntPipe } from '@nestjs/common'
 import { XxxService } from './services/xxx.service'
 import { CreateXxxDto } from './dto/create-xxx.dto'
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
 
+@ApiTags('XXX管理')
 @Controller('api/xxx')
 export class XxxController {
   constructor(private readonly xxxService: XxxService) {}
 
+  @ApiOperation({ summary: '获取XXX列表' })
   @Get()
   async getList(
     @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
   ) {
     return await this.xxxService.getList(page, limit)
+  }
+
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '创建XXX' })
+  @Post()
+  async create(@Body() createDto: CreateXxxDto) {
+    return await this.xxxService.create(createDto)
   }
 }
 ```
@@ -217,9 +230,17 @@ return ResponseHelper.error('错误信息', { code: 'ERROR_CODE' })
 @Param('id', ParseUUIDPipe) // URL 参数
 @Query('page', ParseIntPipe) // 查询参数
 
-// 认证装饰器
-@UseGuards(JwtAuthGuard)    // JWT 认证
-@UseGuards(AdminOnlyGuard)  // 管理员权限
+// Swagger 装饰器
+@ApiTags('用户管理')        // 接口分组
+@ApiOperation({ summary })  // 接口摘要
+@ApiBearerAuth('JWT-auth')  // JWT 认证（加在方法上）
+@ApiQuery({ name })         // Query 参数说明
+
+// 认证授权装饰器
+@UseGuards(JwtAuthGuard)   // JWT 认证
+@UseGuards(AdminOnlyGuard) // 管理员权限
+@Public()                  // 公开访问（无需认证）
+@AdminOnly()               // 管理员专属
 ```
 
 ## 📦 核心模块
@@ -326,16 +347,19 @@ const sql = `SELECT * FROM nft WHERE name LIKE '%${name}%'`
 ### 使用 DTO 进行验证
 
 ```typescript
-// ✅ 推荐：使用 class-validator
+// ✅ 推荐：使用 class-validator + @nestjs/swagger
 import { IsString, IsEmail, MinLength, IsEnum } from 'class-validator'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export class CreateUserDto {
+  @ApiProperty({ description: '用户名' })
   @IsString()
   @MinLength(2)
   username: string
 
+  @ApiPropertyOptional({ description: '邮箱' })
   @IsEmail()
-  email: string
+  email?: string
 }
 
 // ❌ 避免：手动验证
@@ -369,25 +393,61 @@ throw new InternalServerErrorException('服务异常', { cause: error })
 return { success: false, code: 404 }
 ```
 
+### 认证授权装饰器
+
+```typescript
+import { Public, AdminOnly } from '@/modules/auth/decorators'
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
+
+@ApiTags('认证模块')
+@Controller('api/auth')
+export class AuthController {
+  // 公开接口
+  @Public()
+  @ApiOperation({ summary: '用户登录' })
+  @Post('login')
+  async login() {}
+
+  // 需认证接口
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取用户信息' })
+  async getInfo() {}
+
+  // 管理员接口
+  @UseGuards(AdminOnlyGuard)
+  @AdminOnly()
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '删除用户' })
+  async delete() {}
+}
+```
+
 ## 📋 详细规范
 
-- **代码风格**: `.claude/rules/backend/code-style.md`
+- **代码风格**: `.claude/rules/backend/code-style.md`（含 Swagger 规范）
 - **API 规范**: `.claude/rules/other/api.md`
 - **安全规范**: `.claude/rules/other/security.md`
 - **测试规范**: `.claude/rules/other/testing.md`
+- **Swagger 文档**: `http://localhost:12600/api/docs`
 
 ## ⚡ 开发检查清单
 
 - [ ] TypeScript 类型定义完整
 - [ ] DTO 添加 class-validator 验证装饰器
+- [ ] DTO 添加 Swagger @ApiProperty / @ApiPropertyOptional 装饰器
+- [ ] Response DTO 添加 Swagger @ApiProperty 装饰器
+- [ ] Controller 添加 @ApiTags 和 @ApiOperation 装饰器
+- [ ] 需要认证的接口添加 @ApiBearerAuth
 - [ ] Service 添加中文注释
-- [ ] Controller 添加 JSDoc 注释
+- [ ] 正确使用 @Public / @AdminOnly 装饰器
 - [ ] 使用 ResponseHelper 返回响应
 - [ ] 正确处理异常
 - [ ] 使用 UUID 主键
 - [ ] 使用软删除（isActive 字段）
 - [ ] 模块正确导出依赖
 - [ ] 在 BusinessModule 中注册新模块
+- [ ] 启动服务访问 /api/docs 验证 Swagger 文档
 
 ---
 

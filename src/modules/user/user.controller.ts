@@ -20,21 +20,36 @@ import {
   UserPaginatedResult,
   UserDeleteResult,
 } from '@/modules/user/types/user.types';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
 /**
  * 用户控制器
  * 处理用户管理相关的HTTP请求
  */
+@ApiTags('用户管理')
 @Controller('api/users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  /**
-   * 获取所有用户（分页）
-   *
-   * @param page 页码，默认为1
-   * @param limit 每页数量，默认为10，最大100
-   */
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取用户列表（分页）' })
+  @ApiQuery({
+    name: 'page',
+    description: '页码',
+    required: false,
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: '每页数量',
+    required: false,
+    type: Number,
+  })
   @Get()
   async getUserList(
     @Query(
@@ -53,11 +68,8 @@ export class UserController {
     return await this.userService.getUserList(page, limit);
   }
 
-  /**
-   * 根据ID获取用户信息
-   *
-   * @param id 用户的UUID标识符
-   */
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '根据ID获取用户信息' })
   @Get(':id')
   async getUserById(
     @Param('id', ParseUUIDPipe) id: string,
@@ -65,12 +77,8 @@ export class UserController {
     return await this.userService.getUserById(id);
   }
 
-  /**
-   * 更新用户信息
-   *
-   * @param id 用户的UUID标识符
-   * @param updateUserDto 更新用户信息的数据传输对象
-   */
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '更新用户信息' })
   @Put(':id')
   async updateUser(
     @Param('id', ParseUUIDPipe) id: string,
@@ -79,11 +87,8 @@ export class UserController {
     return await this.userService.updateUser(id, updateUserDto);
   }
 
-  /**
-   * 删除用户（软删除）
-   *
-   * @param id 用户的UUID标识符
-   */
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '删除用户（软删除）' })
   @Delete(':id')
   @HttpCode(204)
   async deleteUser(

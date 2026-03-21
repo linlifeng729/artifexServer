@@ -1,21 +1,37 @@
 import { NftInstance } from '@/modules/nft/entities/nft-instance.entity';
 import { NftStatus, NftInstanceStatus } from '@/modules/nft/constants';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * NFT实例响应DTO
  * 用于返回NFT实例信息
  */
 export class NftInstanceResponseDto {
+  @ApiProperty()
   id: number;
+
+  @ApiProperty()
   nftId: number;
+
+  @ApiPropertyOptional()
   nftNumber?: string;
+
+  @ApiProperty()
   price: number;
+
+  @ApiProperty({ enum: ['available', 'sold', 'reserved'] })
   status: NftInstanceStatus;
+
+  @ApiPropertyOptional()
   remark?: string;
+
+  @ApiProperty()
   createdAt: Date;
+
+  @ApiProperty()
   updatedAt: Date;
 
-  // NFT类型信息（如果包含关联查询）
+  @ApiPropertyOptional({ description: 'NFT类型信息' })
   nft?: {
     id: number;
     name: string;
@@ -24,7 +40,7 @@ export class NftInstanceResponseDto {
     status: NftStatus;
   };
 
-  // 拥有者信息（如果包含关联查询）
+  @ApiPropertyOptional({ description: '拥有者信息' })
   owner?: {
     id: string;
     nickname?: string;

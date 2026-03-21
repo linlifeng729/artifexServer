@@ -1,15 +1,18 @@
 import { IsString, Length, Matches } from 'class-validator';
 import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
+import { ApiProperty } from '@nestjs/swagger';
 
 /**
  * 用户登录数据传输对象
  * 定义登录时需要的字段和验证规则
  */
 export class LoginDto {
+  @ApiProperty({ description: '手机号', example: '13800138000' })
   @IsString({ message: '手机号必须是字符串' })
   @Matches(AUTH_CONSTANTS.PHONE.REGEX, { message: '请输入正确的手机号格式' })
   phone: string;
 
+  @ApiProperty({ description: '验证码（6位数字）', example: '123456' })
   @IsString({ message: '验证码必须是字符串' })
   @Length(
     AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH,

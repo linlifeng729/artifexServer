@@ -207,32 +207,36 @@ export default USER_CONSTANTS
 ### 6.1 创建 DTO
 
 ```typescript
-import { IsString, IsEnum, IsNotEmpty, MaxLength, IsUrl, IsOptional, IsNumber, Min, Max } from 'class-validator'
-import { 
-  NFT_STATUS_VALUES, 
+import { IsString, IsEnum, IsNotEmpty, MaxLength, IsUrl, IsOptional, IsNumber, Min } from 'class-validator'
+import {
+  NFT_STATUS_VALUES,
   NFT_CONSTRAINTS,
-  NftStatus 
+  NftStatus,
 } from '@/modules/nft/constants'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 /**
  * 创建NFT的请求DTO
  */
 export class CreateNftDto {
+  @ApiProperty({ description: 'NFT名称', maxLength: NFT_CONSTRAINTS.NAME_MAX_LENGTH })
   @IsString({ message: 'NFT名称必须是字符串' })
   @IsNotEmpty({ message: 'NFT名称不能为空' })
-  @MaxLength(NFT_CONSTRAINTS.NAME_MAX_LENGTH, { 
-    message: `NFT名称不能超过${NFT_CONSTRAINTS.NAME_MAX_LENGTH}个字符` 
+  @MaxLength(NFT_CONSTRAINTS.NAME_MAX_LENGTH, {
+    message: `NFT名称不能超过${NFT_CONSTRAINTS.NAME_MAX_LENGTH}个字符`,
   })
   name: string;
 
+  @ApiProperty({ description: 'NFT图片URL', maxLength: NFT_CONSTRAINTS.IMAGE_URL_MAX_LENGTH })
   @IsString({ message: 'NFT图片URL必须是字符串' })
   @IsNotEmpty({ message: 'NFT图片URL不能为空' })
   @IsUrl({}, { message: 'NFT图片URL格式不正确' })
   image: string;
 
+  @ApiPropertyOptional({ description: 'NFT状态', enum: NFT_STATUS_VALUES })
   @IsOptional()
-  @IsEnum(NFT_STATUS_VALUES, { 
-    message: `NFT状态只能是${NFT_STATUS_VALUES.join('或')}` 
+  @IsEnum(NFT_STATUS_VALUES, {
+    message: `NFT状态只能是${NFT_STATUS_VALUES.join('或')}`,
   })
   status?: NftStatus;
 }
@@ -241,34 +245,39 @@ export class CreateNftDto {
 ### 6.2 查询 DTO
 
 ```typescript
+import { Transform } from 'class-transformer'
 import { IsOptional, IsNumber, Min, Max, IsString, IsEnum } from 'class-validator'
-import { Type } from 'class-transformer'
+import { ApiPropertyOptional } from '@nestjs/swagger'
 import { NFT_CONSTANTS } from '@/modules/nft/constants'
 
 /**
  * 查询NFT类型列表 DTO
  */
 export class QueryNftTypesDto {
-  @IsNumber()
+  @ApiPropertyOptional({ description: '页码', default: 1 })
   @IsOptional()
-  @Type(() => Number)
+  @Transform(({ value }) => value ? parseInt(value, 10) : undefined)
+  @IsNumber()
   @Min(1)
-  page?: number = NFT_CONSTANTS.PAGINATION.DEFAULT_PAGE
+  page?: number
 
-  @IsNumber()
+  @ApiPropertyOptional({ description: '每页数量', default: 10 })
   @IsOptional()
-  @Type(() => Number)
+  @Transform(({ value }) => value ? parseInt(value, 10) : undefined)
+  @IsNumber()
   @Min(1)
   @Max(100)
-  limit?: number = NFT_CONSTANTS.PAGINATION.DEFAULT_LIMIT
+  limit?: number
 
-  @IsString()
+  @ApiPropertyOptional({ description: 'NFT名称模糊搜索' })
   @IsOptional()
+  @IsString()
   name?: string
 
-  @IsEnum(NFT_CONSTANTS.STATUS)
+  @ApiPropertyOptional({ description: 'NFT状态', enum: ['active', 'inactive'] })
   @IsOptional()
-  status?: number
+  @IsEnum(['active', 'inactive'])
+  status?: string
 }
 ```
 
@@ -374,50 +383,46 @@ throw new InternalServerErrorException('服务异常', { cause: error })
 ### 8.1 基础结构
 
 ```typescript
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Put, 
-  Delete, 
-  Body, 
-  Param, 
-  Query, 
-  ParseIntPipe, 
-  ParseUUIDPipe,
-  HttpCode,
-  DefaultValuePipe,
-  UseGuards,
+import {
+  Controller, Get, Post, Put, Delete,
+  Body, Param, Query, ParseIntPipe, ParseUUIDPipe,
+  HttpCode, DefaultValuePipe, UseGuards,
 } from '@nestjs/common'
 import { UserService } from '@/modules/user/services/user.service'
 import { UpdateUserDto } from '@/modules/user/dto'
 import { USER_CONSTANTS } from '@/modules/user/constants'
 import { AdminOnly, Public } from '@/modules/auth/decorators'
 import { AdminOnlyGuard } from '@/modules/auth/guards/admin-only.guard'
+import { JwtAuthGuard } from '@/modules/auth/guards/jwt.guard'
 import { ApiResponse } from '@/common/interceptors/response.interceptor'
+import {
+  ApiTags, ApiOperation, ApiQuery, ApiBearerAuth,
+} from '@nestjs/swagger'
 
 /**
  * 用户控制器
  * 处理用户管理相关的HTTP请求
  */
+@ApiTags('用户管理')
 @Controller('api/users')
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   /**
    * 获取用户列表（公开访问）
-   * 
+   *
    * @param page 页码
    * @param limit 每页数量
    */
   @Public()
+  @ApiOperation({ summary: '获取用户列表' })
+  @ApiQuery({ name: 'page', description: '页码', required: false, type: Number })
+  @ApiQuery({ name: 'limit', description: '每页数量', required: false, type: Number })
   @Get()
   async getUserList(
-    @Query('page', new DefaultValuePipe(USER_CONSTANTS.PAGINATION.DEFAULT_PAGE), ParseIntPipe) 
+    @Query('page', new DefaultValuePipe(USER_CONSTANTS.PAGINATION.DEFAULT_PAGE), ParseIntPipe)
     page: number,
-    @Query('limit', new DefaultValuePipe(USER_CONSTANTS.PAGINATION.DEFAULT_LIMIT), ParseIntPipe) 
+    @Query('limit', new DefaultValuePipe(USER_CONSTANTS.PAGINATION.DEFAULT_LIMIT), ParseIntPipe)
     limit: number,
   ): Promise<ApiResponse<any>> {
     return await this.userService.getUserList(page, limit)
@@ -425,23 +430,25 @@ export class UserController {
 
   /**
    * 创建用户（管理员权限）
-   * 
+   *
    * @param createUserDto 创建用户的数据传输对象
    */
-  @Post()
   @UseGuards(AdminOnlyGuard)
   @AdminOnly()
-  @HttpCode(201)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '创建用户' })
+  @Post()
   async createUser(@Body() createUserDto: any): Promise<ApiResponse<any>> {
     return await this.userService.createUser(createUserDto)
   }
 
   /**
    * 根据ID获取用户信息
-   * 
+   *
    * @param id 用户UUID
    */
   @Public()
+  @ApiOperation({ summary: '根据ID获取用户信息' })
   @Get(':id')
   async getUserById(
     @Param('id', ParseUUIDPipe) id: string
@@ -451,10 +458,13 @@ export class UserController {
 
   /**
    * 更新用户信息
-   * 
+   *
    * @param id 用户UUID
    * @param updateUserDto 更新用户信息的数据传输对象
    */
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '更新用户信息' })
   @Put(':id')
   async updateUser(
     @Param('id', ParseUUIDPipe) id: string,
@@ -465,9 +475,12 @@ export class UserController {
 
   /**
    * 删除用户
-   * 
+   *
    * @param id 用户UUID
    */
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '删除用户' })
   @Delete(':id')
   @HttpCode(204)
   async deleteUser(
@@ -595,8 +608,9 @@ export interface InternalUser extends PublicUser {
 export interface UserPaginatedResult {
   list: PublicUser[]
   total: number
-  pageNum: number
-  pageSize: number
+  page: number
+  limit: number
+  totalPages: number
 }
 
 /**
@@ -609,7 +623,156 @@ export interface UserDeleteResult {
 
 ---
 
-## 十一、检查清单
+## 十一、Swagger API 文档规范
+
+项目使用 `@nestjs/swagger` 自动生成 API 文档，文档地址：`/api/docs`
+
+### 11.1 安装与配置
+
+```typescript
+// 安装依赖
+npm install @nestjs/swagger
+
+// src/main.ts
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+
+const swaggerConfig = new DocumentBuilder()
+  .setTitle('Artifex API')
+  .setDescription('Artifex 后端 API 文档')
+  .setVersion('1.0')
+  .addBearerAuth(
+    {
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      name: 'Authorization',
+      description: '输入 JWT Token',
+      in: 'header',
+    },
+    'JWT-auth',
+  )
+  .build()
+
+const document = SwaggerModule.createDocument(app, swaggerConfig)
+SwaggerModule.setup('api/docs', app, document)
+```
+
+### 11.2 Controller Swagger 装饰器
+
+```typescript
+import {
+  ApiTags,
+  ApiOperation,
+  ApiQuery,
+  ApiBearerAuth,
+  ApiResponse as SwaggerApiResponse,
+} from '@nestjs/swagger'
+
+@ApiTags('用户管理')            // 接口分组标签
+@Controller('api/users')
+export class UserController {
+  // 公开接口 - 不加 @ApiBearerAuth
+  @Public()
+  @ApiOperation({ summary: '获取用户列表' })
+  @Get()
+  async getList() {}
+
+  // 需要认证的接口
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')   // 在需要认证的方法上加
+  @ApiOperation({ summary: '更新用户信息' })
+  @Put(':id')
+  async update() {}
+
+  // 回调通知等特殊接口
+  @Public()
+  @ApiOperation({ summary: '支付宝支付回调' })
+  @SwaggerApiResponse({ status: 200, description: '处理成功' })
+  @Post('notify/alipay') {}
+}
+```
+
+### 11.3 DTO Swagger 装饰器
+
+```typescript
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+
+export class CreateUserDto {
+  // 必填字段
+  @ApiProperty({ description: '用户名', example: '张三' })
+  @IsString()
+  name: string
+
+  // 可选字段
+  @ApiPropertyOptional({ description: '邮箱', example: 'test@example.com' })
+  @IsOptional()
+  @IsEmail()
+  email?: string
+
+  // 带枚举示例
+  @ApiPropertyOptional({ description: '用户角色', enum: ['user', 'admin'] })
+  @IsOptional()
+  @IsEnum(['user', 'admin'])
+  role?: string
+
+  // 带长度限制
+  @ApiPropertyOptional({ description: '昵称', maxLength: 50 })
+  @IsOptional()
+  @MaxLength(50)
+  nickname?: string
+}
+
+// 查询 DTO（用于 @Query 参数）
+export class QueryUserDto {
+  @ApiPropertyOptional({ description: '页码', default: 1 })
+  @IsOptional()
+  @IsNumber()
+  page?: number = 1
+
+  @ApiPropertyOptional({ description: '每页数量', default: 10 })
+  @IsOptional()
+  @IsNumber()
+  limit?: number = 10
+}
+```
+
+### 11.4 Response DTO Swagger 装饰器
+
+```typescript
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+
+export class UserResponseDto {
+  @ApiProperty()
+  id: number
+
+  @ApiProperty()
+  name: string
+
+  @ApiPropertyOptional()
+  email?: string
+
+  @ApiProperty({ description: '用户角色', enum: ['user', 'admin'] })
+  role: string
+
+  // 嵌套对象
+  @ApiPropertyOptional({ description: '关联信息' })
+  profile?: {
+    id: number
+    bio?: string
+  }
+}
+```
+
+### 11.5 注意事项
+
+- `@ApiBearerAuth` 必须加在具体方法上，不要加在控制器类上（否则所有接口都会显示需要认证）
+- `@ApiResponse` 与项目的 `ApiResponse` 类型重名，必须使用别名 `SwaggerApiResponse`
+- 枚举字段使用 `enum:` 属性可以让 Swagger UI 显示下拉选项
+- 统一响应格式由全局拦截器自动包装，Swagger 文档展示的是原始数据结构
+
+---
+
+## 十二、检查清单
 
 ### 开发前
 - [ ] 确认数据库表结构
@@ -620,12 +783,15 @@ export interface UserDeleteResult {
 - [ ] Constants 包含分页和字段配置
 - [ ] Types 定义完整（Public/Internal 类型）
 - [ ] DTO 添加 class-validator 验证装饰器
+- [ ] DTO 添加 Swagger @ApiProperty 装饰器
 - [ ] Service 使用 ResponseHelper 返回响应
-- [ ] Controller 添加 JSDoc 注释
-- [ ] 正确使用 @Public / @AdminOnly 装饰器
+- [ ] Controller 添加 JSDoc 注释和 @ApiOperation
+- [ ] Controller 正确使用 @Public / @AdminOnly 装饰器
+- [ ] 需要认证的接口添加 @ApiBearerAuth
 
 ### 开发后
 - [ ] Module 正确导出依赖
 - [ ] 在 BusinessModule 中注册新模块
 - [ ] 运行 lint 检查代码格式
+- [ ] 启动服务访问 /api/docs 验证 Swagger 文档
 

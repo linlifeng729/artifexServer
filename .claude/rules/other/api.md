@@ -4,6 +4,21 @@
 
 ---
 
+## 零、Swagger 文档
+
+项目已集成 Swagger UI，所有接口文档自动生成：
+
+- **文档地址**: `http://localhost:12600/api/docs`
+- **JSON 格式**: `http://localhost:12600/api/docs-json`
+
+Swagger 文档包含：
+- 接口路径、请求参数、响应格式
+- JWT 认证支持（在页面顶部 Authorize 按钮填入 Token）
+- Request/Response 示例
+- enum 字段下拉选项
+
+
+
 ## 一、接口设计原则
 
 ### 1.1 RESTful 风格
@@ -204,23 +219,41 @@ PUT /api/users/:id
 
 ### 4.2 公共接口
 
-使用 `@Public` 装饰器标记：
+使用 `@Public` 装饰器标记公开接口：
 
 ```typescript
-@Public()
-@Get('list')
-async getList() {}
+import { Public } from '@/modules/auth/decorators'
+import { ApiTags, ApiOperation } from '@nestjs/swagger'
+
+@ApiTags('认证模块')
+@Controller('api/auth')
+export class AuthController {
+  @Public()
+  @ApiOperation({ summary: '用户登录' })
+  @Post('login')
+  async login() {}
+}
 ```
 
 ### 4.3 需要管理员权限
 
-使用 `@AdminOnly` 装饰器标记：
+使用 `@AdminOnly` 装饰器标记管理员接口：
 
 ```typescript
-@UseGuards(AdminOnlyGuard)
-@AdminOnly()
-@Post()
-async create() {}
+import { AdminOnly } from '@/modules/auth/decorators'
+import { AdminOnlyGuard } from '@/modules/auth/guards/admin-only.guard'
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger'
+
+@ApiTags('NFT类型')
+@Controller('api/nft')
+export class NftTypesController {
+  @UseGuards(AdminOnlyGuard)
+  @AdminOnly()
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '创建NFT类型' })
+  @Post()
+  async create() {}
+}
 ```
 
 ---

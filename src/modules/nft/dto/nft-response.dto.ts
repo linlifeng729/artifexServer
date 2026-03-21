@@ -1,18 +1,36 @@
 import { Nft } from '@/modules/nft/entities/nft.entity';
 import { NftStatus } from '@/modules/nft/constants';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * NFT响应DTO
  */
 export class NftResponseDto {
+  @ApiProperty()
   id: number;
+
+  @ApiProperty()
   name: string;
+
+  @ApiProperty()
   image: string;
+
+  @ApiProperty()
   type: string;
+
+  @ApiProperty({ enum: ['active', 'inactive'] })
   status: NftStatus;
+
+  @ApiProperty()
   createdAt: Date;
+
+  @ApiProperty()
   updatedAt: Date;
+
+  @ApiPropertyOptional()
   availableCount?: number;
+
+  @ApiPropertyOptional()
   minPrice?: number;
 
   /**

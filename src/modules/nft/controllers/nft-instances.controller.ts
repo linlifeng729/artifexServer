@@ -14,15 +14,24 @@ import { NftInstanceResponseDto } from '@/modules/nft/dto/nft-instance-response.
 import { QueryNftInstancesDto } from '@/modules/nft/dto/query-nft-instances.dto';
 import { Public } from '@/modules/auth/decorators';
 import { ApiResponse } from '@/common/interceptors/response.interceptor';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiResponse as SwaggerApiResponse,
+} from '@nestjs/swagger';
 
 /**
  * NFT实例控制器
  */
+@ApiTags('NFT实例')
 @Controller('api/nft-instances')
 export class NftInstancesController {
   constructor(private readonly nftInstancesService: NftInstancesService) {}
 
-  /** 发布NFT实例（用户鉴权） */
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '发布NFT实例' })
+  @SwaggerApiResponse({ status: 201, description: '发布成功' })
   @Post()
   async publishNftInstance(
     @Body() createNftInstanceDto: CreateNftInstanceDto,
@@ -35,8 +44,8 @@ export class NftInstancesController {
     );
   }
 
-  /** 获取NFT实例列表（公开） */
   @Public()
+  @ApiOperation({ summary: '获取NFT实例列表' })
   @Get()
   async getNftInstanceList(@Query() queryDto: QueryNftInstancesDto): Promise<
     ApiResponse<{
@@ -50,7 +59,8 @@ export class NftInstancesController {
     return await this.nftInstancesService.getNftInstanceList(queryDto);
   }
 
-  /** 获取当前用户的NFT实例列表（用户鉴权） */
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: '获取当前用户的NFT实例列表' })
   @Get('my')
   async getMyNftInstanceList(
     @Request() request: any,
@@ -71,8 +81,8 @@ export class NftInstancesController {
     );
   }
 
-  /** 获取NFT实例详情（公开） */
   @Public()
+  @ApiOperation({ summary: '获取NFT实例详情' })
   @Get(':id')
   async getNftInstanceById(
     @Param('id', ParseIntPipe) id: number,
