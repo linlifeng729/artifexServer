@@ -31,6 +31,7 @@ export class AlipayService {
 
   /**
    * 生成支付宝支付表单
+   * @param method 支付宝接口类型（如 alipay.trade.page.pay、alipay.trade.wap.pay）
    * @param outTradeNo 商户订单号
    * @param totalAmount 总金额（单位：元）
    * @param subject 商品名称
@@ -40,6 +41,7 @@ export class AlipayService {
    * @returns 支付表单 HTML
    */
   async generatePayForm(
+    method: string,
     outTradeNo: string,
     totalAmount: number,
     subject: string,
@@ -48,7 +50,7 @@ export class AlipayService {
     returnUrl?: string,
   ): Promise<string> {
     try {
-      const result = await this.alipaySdk.pageExec('trade', {
+      const result = await this.alipaySdk.pageExec(method, {
         return_url: returnUrl,
         notify_url: notifyUrl,
         bizContent: {

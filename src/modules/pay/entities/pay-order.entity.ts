@@ -9,7 +9,6 @@ import {
   PAY_CONSTRAINTS,
   TRADE_STATE,
   PAY_CHANNEL,
-  GOODS_TYPE,
 } from '@/modules/pay/constants';
 
 /**
@@ -53,15 +52,6 @@ export class PayOrder {
     comment: '商品ID',
   })
   goodsId: number;
-
-  @Column({
-    name: 'goods_type',
-    type: 'varchar',
-    length: 20,
-    nullable: false,
-    comment: '商品类型：book-电子书',
-  })
-  goodsType: string;
 
   @Column({
     name: 'trade_state',

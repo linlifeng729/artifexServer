@@ -43,15 +43,6 @@ export class PayDelivery {
   goodsId: number;
 
   @Column({
-    name: 'goods_type',
-    type: 'varchar',
-    length: 20,
-    nullable: false,
-    comment: '商品类型：book-电子书',
-  })
-  goodsType: string;
-
-  @Column({
     name: 'delivery_status',
     type: 'tinyint',
     default: DELIVERY_STATUS.NOT_DELIVERED,

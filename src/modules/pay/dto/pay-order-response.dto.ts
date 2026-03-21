@@ -26,10 +26,6 @@ export class PayOrderResponseDto {
   @Expose()
   goodsId: number;
 
-  @ApiProperty({ description: '商品类型' })
-  @Expose()
-  goodsType: string;
-
   @ApiProperty({ description: '交易状态', nullable: true })
   @Expose()
   tradeState: string | null;
@@ -72,7 +68,6 @@ export class PayOrderResponseDto {
     dto.amount = entity.amount;
     dto.userId = entity.userId;
     dto.goodsId = entity.goodsId;
-    dto.goodsType = entity.goodsType;
     dto.tradeState = entity.tradeState;
     dto.successTime = entity.successTime;
     dto.transactionId = entity.transactionId;

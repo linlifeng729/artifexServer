@@ -1,4 +1,8 @@
-import { SetMetadata, createParamDecorator, ExecutionContext } from '@nestjs/common';
+import {
+  SetMetadata,
+  createParamDecorator,
+  ExecutionContext,
+} from '@nestjs/common';
 
 export const IS_PUBLIC_KEY = 'isPublic';
 export const ADMIN_ONLY_KEY = 'adminOnly';
@@ -14,14 +18,14 @@ export const AdminOnly = () => SetMetadata(ADMIN_ONLY_KEY, true);
  * 使用方式: @CurrentUser('userId') 或 @CurrentUser()
  */
 export const CurrentUser = createParamDecorator(
-    (data: string | undefined, ctx: ExecutionContext) => {
-      const request = ctx.switchToHttp().getRequest();
-      const user = request.user;
-  
-      if (!user) {
-        return null;
-      }
-  
-      return data ? user[data] : user;
-    },
-  );
+  (data: string | undefined, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    const user = request.user;
+
+    if (!user) {
+      return null;
+    }
+
+    return data ? user[data] : user;
+  },
+);

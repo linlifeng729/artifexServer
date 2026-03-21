@@ -10,8 +10,8 @@ import {
 } from 'class-validator';
 import {
   PAY_CONSTRAINTS,
-  GOODS_TYPE,
   PAY_CHANNEL,
+  ALIPAY_ORDER_INTERFACE,
 } from '@/modules/pay/constants';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -39,19 +39,9 @@ export class CreatePayOrderDto {
   amount: number;
 
   @ApiProperty({ description: '商品ID' })
-  @IsString({ message: '商品ID必须是字符串' })
+  @IsNumber({}, { message: '商品ID必须是数字' })
   @IsNotEmpty({ message: '商品ID不能为空' })
-  goodsId: string;
-
-  @ApiProperty({
-    description: '商品类型',
-    enum: Object.values(GOODS_TYPE),
-    example: 'book',
-  })
-  @IsEnum(Object.values(GOODS_TYPE), {
-    message: `商品类型只能是${Object.values(GOODS_TYPE).join('或')}`,
-  })
-  goodsType: string;
+  goodsId: number;
 
   @ApiPropertyOptional({ description: '支付成功回调 URL' })
   @IsOptional()
@@ -85,4 +75,16 @@ export class CreatePayOrderDto {
     message: `支付渠道只能是${Object.values(PAY_CHANNEL).join('或')}`,
   })
   payChannel?: string;
+
+  @ApiPropertyOptional({
+    description:
+      '支付宝接口类型（alipay.trade.page.pay 或 alipay.trade.wap.pay）',
+    enum: Object.values(ALIPAY_ORDER_INTERFACE),
+    example: 'alipay.trade.page.pay',
+  })
+  @IsOptional()
+  @IsEnum(Object.values(ALIPAY_ORDER_INTERFACE), {
+    message: `支付宝接口类型只能是 ${Object.values(ALIPAY_ORDER_INTERFACE).join(' 或 ')}`,
+  })
+  orderInterface?: string;
 }

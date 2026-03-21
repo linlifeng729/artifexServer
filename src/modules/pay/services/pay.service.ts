@@ -2,7 +2,6 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -41,13 +40,11 @@ export class PayService {
    * 创建支付订单并获取支付参数
    * @param userId 用户ID
    * @param createPayOrderDto 创建订单 DTO
-   * @param orderInterface 支付接口类型（用于微信支付）
    * @returns 支付参数
    */
   async createPayOrder(
     userId: number,
     createPayOrderDto: CreatePayOrderDto,
-    orderInterface: string = 'trade',
   ): Promise<{
     outTradeNo: string;
     paymentData: any;
@@ -60,8 +57,7 @@ export class PayService {
       outTradeNo,
       amount: createPayOrderDto.amount,
       userId,
-      goodsId: parseInt(createPayOrderDto.goodsId),
-      goodsType: createPayOrderDto.goodsType,
+      goodsId: createPayOrderDto.goodsId,
       payChannel: createPayOrderDto.payChannel || PAY_CHANNEL.ALIPAY,
       appId: createPayOrderDto.appId,
       description: createPayOrderDto.description,
@@ -80,6 +76,7 @@ export class PayService {
     switch (createPayOrderDto.payChannel) {
       case PAY_CHANNEL.ALIPAY:
         paymentData = await this.createAlipayOrder(
+          createPayOrderDto.orderInterface!,
           outTradeNo,
           createPayOrderDto.amount / 100, // 转换为元
           createPayOrderDto.description,
@@ -95,7 +92,7 @@ export class PayService {
           createPayOrderDto.description,
           createPayOrderDto.callbackUrl ?? '',
           notifyUrl,
-          orderInterface,
+          createPayOrderDto.orderInterface!,
         );
         break;
 
@@ -110,7 +107,7 @@ export class PayService {
           createPayOrderDto.description,
           createPayOrderDto.callbackUrl ?? '',
           notifyUrl,
-          orderInterface,
+          createPayOrderDto.orderInterface!,
           createPayOrderDto.openid,
         );
         break;
@@ -126,6 +123,7 @@ export class PayService {
    * 创建支付宝订单
    */
   private async createAlipayOrder(
+    method: string,
     outTradeNo: string,
     totalAmount: number,
     subject: string,
@@ -135,6 +133,7 @@ export class PayService {
     const productCode = 'FAST_INSTANT_TRADE_PAY';
 
     return await this.alipayService.generatePayForm(
+      method,
       outTradeNo,
       totalAmount,
       subject,
@@ -298,28 +297,12 @@ export class PayService {
       orderId: order.outTradeNo,
       userId: order.userId,
       goodsId: order.goodsId,
-      goodsType: order.goodsType,
       deliveryStatus: DELIVERY_STATUS.NOT_DELIVERED,
     });
 
     await this.payDeliveryRepository.save(delivery);
 
     try {
-      // 根据商品类型调用对应的发货处理
-      // 这里可以扩展更多商品类型的发货逻辑
-      switch (order.goodsType) {
-        case 'book':
-          // 发货处理逻辑
-          // await this.deliverBook(order.userId, order.goodsId);
-          this.loggingService.log(
-            '电子书发货成功',
-            `userId: ${order.userId}, goodsId: ${order.goodsId}`,
-          );
-          break;
-        default:
-          this.loggingService.warn('未知商品类型', order.goodsType);
-      }
-
       // 更新发货状态
       await this.payDeliveryRepository.update(
         { orderId: order.outTradeNo },
