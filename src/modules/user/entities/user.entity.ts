@@ -18,35 +18,35 @@ export class User {
 
   @Column({
     type: 'varchar',
-    length: USER_CONSTANTS.CONSTRAINTS.ID_LENGTH,
+    length: 36,
     unique: true,
     comment: '用户UUID',
   })
   id: string;
 
   @Column({
-    length: USER_CONSTANTS.CONSTRAINTS.PHONE_LENGTH,
+    length: 255,
     comment: '加密的手机号',
   })
   phone: string;
 
   @Column({
     unique: true,
-    length: USER_CONSTANTS.CONSTRAINTS.PHONE_HASH_LENGTH,
+    length: 64,
     comment: '手机号哈希值',
   })
   phoneHash: string;
 
   @Column({
     nullable: true,
-    length: USER_CONSTANTS.CONSTRAINTS.NICKNAME_MAX_LENGTH,
+    length: 50,
     comment: '用户昵称',
   })
   nickname?: string;
 
   @Column({
     nullable: true,
-    length: USER_CONSTANTS.CONSTRAINTS.VERIFICATION_CODE_LENGTH,
+    length: 10,
     comment: '验证码',
   })
   verificationCode?: string;

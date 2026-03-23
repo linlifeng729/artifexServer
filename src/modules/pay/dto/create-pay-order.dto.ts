@@ -7,6 +7,7 @@ import {
   IsNumber,
   Min,
   IsUrl,
+  ValidateIf,
 } from 'class-validator';
 import { PAY_CONSTANTS } from '@/modules/pay/constants';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -17,21 +18,21 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class CreatePayOrderDto {
   @ApiProperty({
     description: '订单描述',
-    maxLength: PAY_CONSTANTS.CONSTRAINTS.DESCRIPTION_MAX_LENGTH,
+    maxLength: 255,
   })
   @IsString({ message: '订单描述必须是字符串' })
   @IsNotEmpty({ message: '订单描述不能为空' })
-  @MaxLength(PAY_CONSTANTS.CONSTRAINTS.DESCRIPTION_MAX_LENGTH, {
-    message: `订单描述不能超过${PAY_CONSTANTS.CONSTRAINTS.DESCRIPTION_MAX_LENGTH}个字符`,
+  @MaxLength(255, {
+    message: '订单描述不能超过255个字符',
   })
   description: string;
 
   @ApiProperty({
     description: '订单金额（单位：分）',
-    minimum: PAY_CONSTANTS.CONSTRAINTS.MIN_AMOUNT,
+    minimum: 1,
   })
   @IsNumber({}, { message: '订单金额必须是数字' })
-  @Min(PAY_CONSTANTS.CONSTRAINTS.MIN_AMOUNT, { message: '订单金额最小为1分' })
+  @Min(1, { message: '订单金额最小为1分' })
   amount: number;
 
   @ApiProperty({ description: '商品ID' })
@@ -42,23 +43,30 @@ export class CreatePayOrderDto {
   @ApiPropertyOptional({ description: '支付成功回调 URL' })
   @IsOptional()
   @IsUrl({}, { message: '回调URL格式不正确' })
-  @MaxLength(PAY_CONSTANTS.CONSTRAINTS.CALLBACK_URL_MAX_LENGTH, {
-    message: `回调URL不能超过${PAY_CONSTANTS.CONSTRAINTS.CALLBACK_URL_MAX_LENGTH}个字符`,
+  @MaxLength(255, {
+    message: '回调URL不能超过255个字符',
   })
   callbackUrl?: string;
 
   @ApiProperty({ description: '应用ID' })
   @IsString({ message: '应用ID必须是字符串' })
   @IsNotEmpty({ message: '应用ID不能为空' })
-  @MaxLength(PAY_CONSTANTS.CONSTRAINTS.APP_ID_MAX_LENGTH, {
-    message: `应用ID不能超过${PAY_CONSTANTS.CONSTRAINTS.APP_ID_MAX_LENGTH}个字符`,
+  @MaxLength(32, {
+    message: '应用ID不能超过32个字符',
   })
   appId: string;
 
   @ApiPropertyOptional({
     description: '微信用户 openid（公众号/小程序支付必填）',
   })
-  @IsOptional()
+  @ValidateIf(
+    (o) =>
+      !o.payChannel ||
+      [PAY_CONSTANTS.CHANNEL.WECHAT_MP, PAY_CONSTANTS.CHANNEL.WECHAT_OA].includes(
+        o.payChannel,
+      ),
+  )
+  @IsNotEmpty({ message: 'OpenId不能为空' })
   @IsString({ message: 'OpenId必须是字符串' })
   openid?: string;
 

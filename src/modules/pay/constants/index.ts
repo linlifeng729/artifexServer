@@ -62,18 +62,6 @@ export const PAY_CONSTANTS = {
   },
 
   /**
-   * 字段长度限制
-   */
-  CONSTRAINTS: {
-    OUT_TRADE_NO_MAX_LENGTH: 32,
-    DESCRIPTION_MAX_LENGTH: 255,
-    CALLBACK_URL_MAX_LENGTH: 255,
-    APP_ID_MAX_LENGTH: 32,
-    TRANSACTION_ID_MAX_LENGTH: 64,
-    MIN_AMOUNT: 1,
-  },
-
-  /**
    * 微信支付接口地址
    */
   WX_PAY_API: {

@@ -18,15 +18,6 @@ export const USER_CONSTANTS = {
     ADMIN: 'admin',
   } as const,
 
-  // 字段长度约束
-  CONSTRAINTS: {
-    ID_LENGTH: 36,
-    PHONE_LENGTH: 255,
-    PHONE_HASH_LENGTH: 64,
-    NICKNAME_MAX_LENGTH: 50,
-    VERIFICATION_CODE_LENGTH: 10,
-  } as const,
-
   // 数据库查询字段配置
   SELECT_FIELDS: {
     // 公开字段（不包含敏感信息）

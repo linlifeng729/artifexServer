@@ -32,14 +32,12 @@ export class PayService {
     createPayOrderDto: CreatePayOrderDto,
   ): Promise<{
     outTradeNo: string;
-    paymentLink: any;
+    data: any;
   }> {
     const startTime = Date.now();
 
     // 生成商户侧订单号（全局唯一，支付平台以此识别订单）
-    const outTradeNo = ICrypto.generateRandomString(
-      PAY_CONSTANTS.CONSTRAINTS.OUT_TRADE_NO_MAX_LENGTH,
-    );
+    const outTradeNo = ICrypto.generateRandomString(32);
 
     this.loggingService.log(
       `[创建订单] 开始创建订单 - outTradeNo: ${outTradeNo}, userId: ${userId}, amount: ${createPayOrderDto.amount}`,
@@ -80,7 +78,7 @@ export class PayService {
         // 构造回调地址，支付平台通知会推送到此接口
         const notifyUrl = `${PAY_CONSTANTS.DOMAIN}/api/pay/notify`;
 
-        let paymentLink: any;
+        let data: any;
 
         // 根据支付渠道分发到对应支付服务，调用统一下单接口获取支付参数
         switch (createPayOrderDto.payChannel) {
@@ -93,7 +91,7 @@ export class PayService {
                 : PAY_CONSTANTS.ALIPAY_INTERFACE.FACE_TO_FACE_PAY;
 
             // amount 单位为分，支付宝以元为单位，需除以 100 转换
-            paymentLink = await this.alipayService.createAlipayOrder({
+            data = await this.alipayService.createAlipayOrder({
               method: alipayMethod,
               outTradeNo,
               totalAmount: createPayOrderDto.amount / 100,
@@ -106,7 +104,7 @@ export class PayService {
 
           // 微信 Native 支付：返回二维码链接 code_url，前端生成二维码扫码支付
           case PAY_CONSTANTS.CHANNEL.WECHAT_PAY: {
-            paymentLink = await this.wechatPayService.unifiedOrderNative(
+            data = await this.wechatPayService.unifiedOrderNative(
               createPayOrderDto.appId,
               outTradeNo,
               createPayOrderDto.description,
@@ -119,23 +117,18 @@ export class PayService {
           // 微信小程序 / 公众号 JSAPI 支付：需 openid，分两步获取调起参数
           case PAY_CONSTANTS.CHANNEL.WECHAT_MP:
           case PAY_CONSTANTS.CHANNEL.WECHAT_OA: {
-            if (!createPayOrderDto.openid) {
-              throw new BadRequestException('缺少 OpenId 参数');
-            }
-            const jsapiAppId =
-              this.configService.get<string>('wechatPay.appId') ?? '';
             // 第一步：统一下单获取 prepay_id
             const prepayId = await this.wechatPayService.unifiedOrderJsapi(
-              jsapiAppId,
+              createPayOrderDto.appId,
               outTradeNo,
               createPayOrderDto.description,
               createPayOrderDto.amount,
               notifyUrl,
-              createPayOrderDto.openid,
+              createPayOrderDto.openid!,
             );
             // 第二步：用 prepay_id 生成调起微信支付的签名参数
-            paymentLink = await this.wechatPayService.generateJsapiPayParams(
-              jsapiAppId,
+            data = await this.wechatPayService.generateJsapiPayParams(
+              createPayOrderDto.appId,
               prepayId,
               createPayOrderDto.callbackUrl,
             );
@@ -150,7 +143,7 @@ export class PayService {
           `[创建订单] 订单创建成功 - outTradeNo: ${outTradeNo}, 耗时: ${Date.now() - startTime}ms`,
         );
 
-        return { outTradeNo, paymentLink };
+        return { outTradeNo, data };
       },
       60000, // 60s 超时，防止死锁长期占用锁
     );

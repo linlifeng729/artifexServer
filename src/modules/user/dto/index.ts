@@ -23,12 +23,12 @@ export class UpdateUserDto {
 
   @ApiPropertyOptional({
     description: '昵称',
-    maxLength: USER_CONSTANTS.CONSTRAINTS.NICKNAME_MAX_LENGTH,
+    maxLength: 50,
   })
   @IsOptional()
   @IsString({ message: '昵称必须是字符串' })
-  @MaxLength(USER_CONSTANTS.CONSTRAINTS.NICKNAME_MAX_LENGTH, {
-    message: `昵称长度不能超过${USER_CONSTANTS.CONSTRAINTS.NICKNAME_MAX_LENGTH}位`,
+  @MaxLength(50, {
+    message: '昵称长度不能超过50位',
   })
   nickname?: string;
 
