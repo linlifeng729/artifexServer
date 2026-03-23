@@ -31,7 +31,10 @@ export class ResponseInterceptor<T>
     next: CallHandler,
   ): Observable<ApiResponse<T>> {
     // 检查是否需要跳过响应包装
-    const isSkipWrap = Reflect.getMetadata(SKIP_RESPONSE_WRAP_KEY, context.getHandler());
+    const isSkipWrap = Reflect.getMetadata(
+      SKIP_RESPONSE_WRAP_KEY,
+      context.getHandler(),
+    );
 
     if (isSkipWrap) {
       // 直接返回原始数据，不包装

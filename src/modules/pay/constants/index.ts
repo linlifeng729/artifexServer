@@ -123,10 +123,12 @@ export const PAY_CONSTANTS = {
 /* -------------------- 类型导出 -------------------- */
 
 /** 支付渠道类型 */
-export type PayChannel = (typeof PAY_CONSTANTS.CHANNEL)[keyof typeof PAY_CONSTANTS.CHANNEL];
+export type PayChannel =
+  (typeof PAY_CONSTANTS.CHANNEL)[keyof typeof PAY_CONSTANTS.CHANNEL];
 
 /** 交易状态类型 */
-export type TradeState = (typeof PAY_CONSTANTS.STATUS)[keyof typeof PAY_CONSTANTS.STATUS];
+export type TradeState =
+  (typeof PAY_CONSTANTS.STATUS)[keyof typeof PAY_CONSTANTS.STATUS];
 
 /** 发货状态类型 */
 export type DeliveryStatus =

@@ -189,7 +189,9 @@ export class ICrypto {
    * @example
    * const privateKey = ICrypto.createPrivateKeyFromBase64('MIIEvQIBADANBgk...')
    */
-  static createPrivateKeyFromBase64(privateKeyBase64: string): crypto.KeyObject {
+  static createPrivateKeyFromBase64(
+    privateKeyBase64: string,
+  ): crypto.KeyObject {
     const keyBuffer = Buffer.from(privateKeyBase64, 'base64');
     return crypto.createPrivateKey({
       key: keyBuffer,

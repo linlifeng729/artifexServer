@@ -5,16 +5,26 @@ import {
 } from '@nestjs/common';
 import { AlipaySdk } from 'alipay-sdk';
 import { ConfigService } from '@nestjs/config';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { LoggingService } from '@/common/services/logging.service';
 import { DistributedLockService } from '@/common/services/distributed-lock.service';
 import { PayOrder } from '@/modules/pay/entities/pay-order.entity';
 import { PayDelivery } from '@/modules/pay/entities/pay-delivery.entity';
 import { PAY_CONSTANTS } from '@/modules/pay/constants';
+import type {
+  AlipayGeneratePayFormParams,
+  AlipayCreateOrderParams,
+  AlipayNotifyParams,
+  AlipayVerifySignParams,
+} from '@/modules/pay/types';
 
+/**
+ * 支付宝支付服务
+ * 提供支付宝支付的表单生成、订单创建、回调处理等功能
+ */
 @Injectable()
 export class AlipayService {
-  private alipaySdk: AlipaySdk;
+  private readonly alipaySdk: AlipaySdk;
 
   constructor(
     private readonly configService: ConfigService,
@@ -22,43 +32,57 @@ export class AlipayService {
     private readonly distributedLockService: DistributedLockService,
     private readonly dataSource: DataSource,
   ) {
-    const appId = this.configService.get<string>('ALIPAY_APP_ID');
-    const privateKey = this.configService.get<string>('ALIPAY_PRIVATE_KEY');
-    const alipayPublicKey = this.configService.get<string>(
-      'ALIPAY_ALIPAY_PUBLIC_KEY',
-    );
-
-    if (!appId || !privateKey || !alipayPublicKey) {
-      throw new InternalServerErrorException('支付宝配置错误，请检查环境变量');
-    }
-
-    this.alipaySdk = new AlipaySdk({
-      appId,
-      privateKey,
-      alipayPublicKey,
-    });
+    const config = this.getAlipayConfig();
+    this.alipaySdk = config.alipaySdk;
   }
 
   /**
-   * 生成支付宝支付表单
-   * @param method 支付宝接口类型（如 alipay.trade.page.pay、alipay.trade.wap.pay）
-   * @param outTradeNo 商户订单号
-   * @param totalAmount 总金额（单位：元）
-   * @param subject 商品名称
-   * @param productCode 产品码（当面付为 FAST_INSTANT_TRADE_PAY）
-   * @param notifyUrl 通知地址
-   * @param returnUrl 返回地址
-   * @returns 支付表单 HTML
+   * @description 获取支付宝配置
+   * @returns {Object} 包含 alipaySdk 的配置对象
+   * @throws InternalServerErrorException 当配置缺失时抛出异常
    */
-  async generatePayForm(
-    method: string,
-    outTradeNo: string,
-    totalAmount: number,
-    subject: string,
-    productCode: string,
-    notifyUrl: string,
-    returnUrl?: string,
-  ): Promise<string> {
+  private getAlipayConfig(): { alipaySdk: AlipaySdk } {
+    const requiredConfigs = [
+      'ALIPAY_APP_ID',
+      'ALIPAY_PRIVATE_KEY',
+      'ALIPAY_ALIPAY_PUBLIC_KEY',
+    ];
+
+    const missingConfigs = requiredConfigs.filter(
+      (key) => !this.configService.get<string>(key),
+    );
+
+    if (missingConfigs.length > 0) {
+      this.loggingService.error(
+        `[支付宝] 配置缺失: ${missingConfigs.join(', ')}`,
+      );
+      throw new InternalServerErrorException('支付宝配置不完整');
+    }
+
+    return {
+      alipaySdk: new AlipaySdk({
+        appId: this.configService.get<string>('ALIPAY_APP_ID')!,
+        privateKey: this.configService.get<string>('ALIPAY_PRIVATE_KEY')!,
+        alipayPublicKey: this.configService.get<string>('ALIPAY_ALIPAY_PUBLIC_KEY')!,
+      }),
+    };
+  }
+
+  /**
+   * @description 生成支付宝支付表单
+   * @param {AlipayGeneratePayFormParams} params 支付参数，包含订单号、金额、商品信息等
+   * @returns {Promise<string>} 支付表单 HTML 内容
+   */
+  async generatePayForm(params: AlipayGeneratePayFormParams): Promise<string> {
+    const {
+      method,
+      outTradeNo,
+      totalAmount,
+      subject,
+      productCode,
+      notifyUrl,
+      returnUrl,
+    } = params;
     try {
       const result = await this.alipaySdk.pageExec(method, {
         return_url: returnUrl,
@@ -81,33 +105,24 @@ export class AlipayService {
   }
 
   /**
-   * 创建支付宝订单并返回支付表单
+   * @description 创建支付宝订单并返回支付表单
+   * @param {AlipayCreateOrderParams} params 订单参数，包含订单号、金额、商品信息等
+   * @returns {Promise<string>} 支付表单 HTML 内容
    */
-  async createAlipayOrder(
-    method: string,
-    outTradeNo: string,
-    totalAmount: number,
-    subject: string,
-    returnUrl: string,
-    notifyUrl: string,
-  ): Promise<string> {
+  async createAlipayOrder(params: AlipayCreateOrderParams): Promise<string> {
     const productCode = 'FAST_INSTANT_TRADE_PAY';
-    return this.generatePayForm(
-      method,
-      outTradeNo,
-      totalAmount,
-      subject,
+    return this.generatePayForm({
+      ...params,
       productCode,
-      notifyUrl,
-      returnUrl,
-    );
+    });
   }
 
   /**
-   * 处理支付宝支付回调通知
-   * 使用分布式锁确保幂等性，防止重复处理
+   * @description 处理支付宝支付回调通知，使用分布式锁确保幂等性，防止重复处理
+   * @param {AlipayNotifyParams} params 支付宝回调参数，包含交易状态、交易号等
+   * @returns {Promise<boolean>} 是否处理成功
    */
-  async handleAlipayNotify(params: Record<string, any>): Promise<boolean> {
+  async handleAlipayNotify(params: AlipayNotifyParams): Promise<boolean> {
     const { out_trade_no, trade_status, gmt_payment, trade_no } = params;
 
     this.loggingService.log(
@@ -197,10 +212,13 @@ export class AlipayService {
   }
 
   /**
-   * 发货处理（在事务中执行）
+   * @description 发货处理（在事务中执行），更新发货状态并记录发货信息
+   * @param {EntityManager} manager 事务管理器
+   * @param {PayOrder} order 支付订单
+   * @returns {Promise<void>}
    */
   private async deliverGoodsWithTransaction(
-    manager: any,
+    manager: EntityManager,
     order: PayOrder,
   ): Promise<void> {
     const existingDelivery = await manager.findOne(PayDelivery, {
@@ -257,9 +275,11 @@ export class AlipayService {
   }
 
   /**
-   * 验证支付宝回调通知签名
+   * @description 验证支付宝回调通知签名
+   * @param {AlipayVerifySignParams} params 回调参数
+   * @returns {boolean} 验签是否通过
    */
-  verifyNotifySign(params: Record<string, any>): boolean {
+  verifyNotifySign(params: AlipayVerifySignParams): boolean {
     try {
       return this.alipaySdk.checkNotifySignV2(params);
     } catch (error) {

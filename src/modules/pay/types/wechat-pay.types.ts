@@ -3,10 +3,7 @@
  * 包含微信 Native 支付、JSAPI 支付、公众号/小程序相关的类型定义
  */
 
-import type {
-  PayChannel,
-  TradeState,
-} from '@/modules/pay/constants';
+import type { PayChannel, TradeState } from '@/modules/pay/constants';
 
 /**
  * 微信 Native 支付统一下单参数（微信 API 原始字段）

@@ -26,21 +26,13 @@ export type {
   WechatMPOpenIdResponse,
 } from './wechat-pay.types';
 
-// 支付宝相关类型（暂保留在此，后续可抽取）
-export interface AlipayPayParams {
-  outTradeNo: string;
-  totalAmount: number;
-  subject: string;
-  productCode: string;
-  quitUrl: string;
-}
-
-export interface AlipayPayResponse {
-  code: string;
-  msg: string;
-  outTradeNo: string;
-  tradeNo: string;
-}
+// 支付宝相关类型（从独立文件导出）
+export type {
+  AlipayGeneratePayFormParams,
+  AlipayCreateOrderParams,
+  AlipayNotifyParams,
+  AlipayVerifySignParams,
+} from './alipay.types';
 
 /* ==================== 支付订单相关类型 ==================== */
 

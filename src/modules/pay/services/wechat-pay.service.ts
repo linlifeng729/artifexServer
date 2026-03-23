@@ -27,10 +27,12 @@ import * as crypto from 'crypto';
  */
 @Injectable()
 export class WechatPayService {
-  private readonly mchId: string;
-  private readonly notifySecret: string;
-  private readonly serialNo: string;
-  private readonly privateKey: crypto.KeyObject;
+  private readonly config: {
+    mchId: string;
+    notifySecret: string;
+    serialNo: string;
+    privateKey: crypto.KeyObject;
+  };
 
   constructor(
     private readonly configService: ConfigService,
@@ -39,11 +41,7 @@ export class WechatPayService {
     private readonly distributedLockService: DistributedLockService,
     private readonly dataSource: DataSource,
   ) {
-    const config = this.getPayConfig();
-    this.mchId = config.mchId;
-    this.notifySecret = config.notifySecret;
-    this.serialNo = config.serialNo;
-    this.privateKey = config.privateKey;
+    this.config = this.getPayConfig();
   }
 
   /**
@@ -79,7 +77,9 @@ export class WechatPayService {
       mchId: this.configService.get<string>('WX_PAY_MCHID')!,
       serialNo: this.configService.get<string>('WX_PAY_SERIAL_NO')!,
       notifySecret: this.configService.get<string>('WX_PAY_NOTIFY_SECRET')!,
-      privateKey: ICrypto.createPrivateKeyFromBase64(this.configService.get<string>('WX_PAY_PRIVATE_KEY')!),
+      privateKey: ICrypto.createPrivateKeyFromBase64(
+        this.configService.get<string>('WX_PAY_PRIVATE_KEY')!,
+      ),
     };
   }
 
@@ -100,7 +100,7 @@ export class WechatPayService {
     const message = `${appId}\n${timestamp}\n${nonceStr}\n${packageId}\n`;
     return ICrypto.createSignWithKeyObject(
       message,
-      this.privateKey,
+      this.config.privateKey,
       'RSA-SHA256',
       'base64',
     );
@@ -138,12 +138,12 @@ export class WechatPayService {
     // 使用 RSA-SHA256 算法对待签名消息进行签名
     const signature = ICrypto.createSignWithKeyObject(
       message,
-      this.privateKey,
+      this.config.privateKey,
       'RSA-SHA256',
       'base64',
     );
 
-    const authorization = `WECHATPAY2-SHA256-RSA2048 mchid="${this.mchId}",nonce_str="${nonceStr}",timestamp="${timestamp}",serial_no="${this.serialNo}",signature="${signature}"`;
+    const authorization = `WECHATPAY2-SHA256-RSA2048 mchid="${this.config.mchId}",nonce_str="${nonceStr}",timestamp="${timestamp}",serial_no="${this.config.serialNo}",signature="${signature}"`;
 
     return authorization;
   }
@@ -200,7 +200,7 @@ export class WechatPayService {
 
       const requestParams = {
         appid: appId,
-        mchid: this.mchId,
+        mchid: this.config.mchId,
         description,
         out_trade_no: outTradeNo,
         notify_url: notifyUrl,
@@ -256,7 +256,7 @@ export class WechatPayService {
 
       const requestParams = {
         appid: appId,
-        mchid: this.mchId,
+        mchid: this.config.mchId,
         description,
         out_trade_no: outTradeNo,
         notify_url: notifyUrl,
@@ -340,7 +340,7 @@ export class WechatPayService {
     associatedData: string,
   ): T {
     try {
-      const key = this.notifySecret;
+      const key = this.config.notifySecret;
       const keyBuffer = Buffer.from(key, 'utf8');
       const nonceBuffer = Buffer.from(nonce, 'utf8');
       const associatedDataBuffer = Buffer.from(associatedData, 'utf8');
@@ -389,7 +389,8 @@ export class WechatPayService {
         resource.associated_data,
       );
 
-      const { out_trade_no, transaction_id, trade_state, success_time } = notifyData;
+      const { out_trade_no, transaction_id, trade_state, success_time } =
+        notifyData;
 
       this.loggingService.log(
         `[微信回调] 收到回调通知 - outTradeNo: ${out_trade_no}, tradeState: ${trade_state}`,

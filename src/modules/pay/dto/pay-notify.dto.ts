@@ -73,48 +73,56 @@ export class WechatPayNotifyDto {
  * 支付宝支付回调通知 DTO
  */
 export class AlipayPayNotifyDto {
-  @ApiPropertyOptional({ description: '支付宝分配给商户的 AppId' })
+  @ApiPropertyOptional({
+    description: '支付宝分配给商户的 AppId',
+    name: 'app_id',
+  })
   @IsString()
   @IsOptional()
-  appId?: string;
+  app_id?: string;
 
-  @ApiPropertyOptional({ description: '商户订单号' })
+  @ApiPropertyOptional({ description: '商户订单号', name: 'out_trade_no' })
   @IsString()
   @IsOptional()
-  outTradeNo?: string;
+  out_trade_no?: string;
 
-  @ApiPropertyOptional({ description: '支付宝交易号' })
+  @ApiPropertyOptional({ description: '支付宝交易号', name: 'trade_no' })
   @IsString()
   @IsOptional()
-  tradeNo?: string;
+  trade_no?: string;
 
-  @ApiPropertyOptional({ description: '交易状态' })
+  @ApiPropertyOptional({ description: '交易状态', name: 'trade_status' })
   @IsString()
   @IsOptional()
-  tradeStatus?: string;
+  trade_status?: string;
 
-  @ApiPropertyOptional({ description: '交易支付时间' })
+  @ApiPropertyOptional({ description: '交易支付时间', name: 'gmt_payment' })
   @IsString()
   @IsOptional()
-  gmtPayment?: string;
+  gmt_payment?: string;
 
-  @ApiPropertyOptional({ description: '订单总金额' })
+  @ApiPropertyOptional({ description: '订单总金额', name: 'total_amount' })
   @IsString()
   @IsOptional()
-  totalAmount?: string;
+  total_amount?: string;
 
-  @ApiPropertyOptional({ description: '买家支付宝用户号' })
+  @ApiPropertyOptional({ description: '买家支付宝用户号', name: 'buyer_id' })
   @IsString()
   @IsOptional()
-  buyerId?: string;
+  buyer_id?: string;
 
-  @ApiPropertyOptional({ description: '买家支付宝账号' })
+  @ApiPropertyOptional({
+    description: '买家支付宝账号',
+    name: 'buyer_logon_id',
+  })
   @IsString()
   @IsOptional()
-  buyerLogonId?: string;
+  buyer_logon_id?: string;
 
-  @ApiPropertyOptional({ description: '卖家支付宝用户号' })
+  @ApiPropertyOptional({ description: '卖家支付宝用户号', name: 'seller_id' })
   @IsString()
   @IsOptional()
-  sellerId?: string;
+  seller_id?: string;
+
+  [key: string]: any;
 }

@@ -29,7 +29,8 @@ export class WechatMPService {
   async getOpenIdByCode(code: string): Promise<string> {
     try {
       const url =
-        PAY_CONSTANTS.WX_API_CONFIG.API_DOMAIN + PAY_CONSTANTS.WX_API.MP_JSCODE2SESSION;
+        PAY_CONSTANTS.WX_API_CONFIG.API_DOMAIN +
+        PAY_CONSTANTS.WX_API.MP_JSCODE2SESSION;
 
       const params = {
         grant_type: 'authorization_code',

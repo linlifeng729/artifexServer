@@ -137,7 +137,7 @@ export class PayController {
       nonce,
       echostr,
     );
-    return result
+    return result;
   }
 
   /**
@@ -222,5 +222,4 @@ export class PayController {
       return { code: 'FAIL', msg: '处理失败' };
     }
   }
-
 }

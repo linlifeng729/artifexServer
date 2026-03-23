@@ -32,11 +32,7 @@ export class WechatOAService {
    * @throws InternalServerErrorException 当配置缺失时抛出异常
    */
   private getOaConfig(): WechatOAConfig {
-    const requiredConfigs = [
-      'WX_OA_APP_ID',
-      'WX_OA_APP_SECRET',
-      'WX_TOKEN',
-    ];
+    const requiredConfigs = ['WX_OA_APP_ID', 'WX_OA_APP_SECRET', 'WX_TOKEN'];
 
     const missingConfigs = requiredConfigs.filter(
       (key) => !this.configService.get<string>(key),
@@ -72,8 +68,13 @@ export class WechatOAService {
     echostr: string,
   ): string {
     const arr = [this.oaConfig.token, timestamp, nonce];
-    const isValidSignature = ICrypto.verifyHash(arr.sort().join(''), signature, 'sha1', 'hex')
-    return isValidSignature ? echostr : ''
+    const isValidSignature = ICrypto.verifyHash(
+      arr.sort().join(''),
+      signature,
+      'sha1',
+      'hex',
+    );
+    return isValidSignature ? echostr : '';
   }
 
   /**
@@ -123,10 +124,7 @@ export class WechatOAService {
    */
   async getAccessToken(): Promise<string> {
     // 检查缓存
-    if (
-      this.accessTokenCache &&
-      Date.now() < this.accessTokenCache.expiresAt
-    ) {
+    if (this.accessTokenCache && Date.now() < this.accessTokenCache.expiresAt) {
       return this.accessTokenCache.token;
     }
 
@@ -169,10 +167,7 @@ export class WechatOAService {
    */
   async getJsapiTicket(): Promise<string> {
     // 检查缓存
-    if (
-      this.jsapiTicketCache &&
-      Date.now() < this.jsapiTicketCache.expiresAt
-    ) {
+    if (this.jsapiTicketCache && Date.now() < this.jsapiTicketCache.expiresAt) {
       return this.jsapiTicketCache.ticket;
     }
 
@@ -216,9 +211,7 @@ export class WechatOAService {
    * @param url 当前网页的 URL
    * @returns 签名信息
    */
-  async generateJsSdkSignature(
-    url: string,
-  ): Promise<WechatOAJsSdkSignature> {
+  async generateJsSdkSignature(url: string): Promise<WechatOAJsSdkSignature> {
     const nonceStr = ICrypto.generateRandomString();
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const ticket = await this.getJsapiTicket();
