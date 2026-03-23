@@ -1,7 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
 import { PayOrder } from '@/modules/pay/entities/pay-order.entity';
 import { CreatePayOrderDto } from '@/modules/pay/dto/create-pay-order.dto';
 import { AlipayService } from './alipay.service';
@@ -18,7 +17,6 @@ export class PayService {
     private readonly payOrderRepository: Repository<PayOrder>,
     private readonly alipayService: AlipayService,
     private readonly wechatPayService: WechatPayService,
-    private readonly configService: ConfigService,
     private readonly loggingService: LoggingService,
     private readonly distributedLockService: DistributedLockService,
   ) {}

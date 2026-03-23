@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { LoggingService } from '@/common/services/logging.service';
 import { PAY_CONSTANTS } from '../constants';
 
 /**
@@ -10,19 +11,42 @@ import { PAY_CONSTANTS } from '../constants';
  */
 @Injectable()
 export class WechatMPService {
-  private readonly appId: string;
-  private readonly appSecret: string;
+  private readonly config: { appId: string; appSecret: string };
 
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
+    private readonly loggingService: LoggingService,
   ) {
-    this.appId = this.configService.get<string>('wechatMP.appId') ?? '';
-    this.appSecret = this.configService.get<string>('wechatMP.appSecret') ?? '';
+    this.config = this.getWxMpConfig();
   }
 
   /**
-   * 通过 code 获取用户 OpenId
+   * @description 获取微信小程序配置
+   * @throws InternalServerErrorException 当配置缺失时抛出异常
+   */
+  private getWxMpConfig(): { appId: string; appSecret: string } {
+    const requiredConfigs = ['WX_MP_APP_ID', 'WX_MP_APP_SECRET'];
+
+    const missingConfigs = requiredConfigs.filter(
+      (key) => !this.configService.get<string>(key),
+    );
+
+    if (missingConfigs.length > 0) {
+      this.loggingService.error(
+        `[微信小程序] 配置缺失: ${missingConfigs.join(', ')}`,
+      );
+      throw new InternalServerErrorException('微信小程序配置不完整');
+    }
+
+    return {
+      appId: this.configService.get<string>('WX_MP_APP_ID')!,
+      appSecret: this.configService.get<string>('WX_MP_APP_SECRET')!,
+    };
+  }
+
+  /**
+   * @description 通过 code 获取用户 OpenId
    * @param code 微信小程序登录 code
    * @returns OpenId
    */
@@ -34,8 +58,8 @@ export class WechatMPService {
 
       const params = {
         grant_type: 'authorization_code',
-        appid: this.appId,
-        secret: this.appSecret,
+        appid: this.config.appId,
+        secret: this.config.appSecret,
         js_code: code,
       };
 

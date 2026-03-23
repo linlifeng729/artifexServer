@@ -40,8 +40,7 @@ export class WechatOAService {
 
     if (missingConfigs.length > 0) {
       this.loggingService.error(
-        '微信公众号配置缺失: ',
-        missingConfigs.join(','),
+        `[微信公众号] 配置缺失: ${missingConfigs.join(', ')}`,
       );
       throw new InternalServerErrorException('微信公众号配置不完整');
     }
