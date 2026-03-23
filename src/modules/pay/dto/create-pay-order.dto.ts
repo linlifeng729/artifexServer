@@ -62,9 +62,10 @@ export class CreatePayOrderDto {
   @ValidateIf(
     (o) =>
       !o.payChannel ||
-      [PAY_CONSTANTS.CHANNEL.WECHAT_MP, PAY_CONSTANTS.CHANNEL.WECHAT_OA].includes(
-        o.payChannel,
-      ),
+      [
+        PAY_CONSTANTS.CHANNEL.WECHAT_MP,
+        PAY_CONSTANTS.CHANNEL.WECHAT_OA,
+      ].includes(o.payChannel),
   )
   @IsNotEmpty({ message: 'OpenId不能为空' })
   @IsString({ message: 'OpenId必须是字符串' })

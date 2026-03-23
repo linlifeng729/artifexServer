@@ -9,6 +9,8 @@ import {
   WechatOAConfig,
   WechatOAOpenIdResult,
   WechatOAJsSdkSignature,
+  WechatTokenCache,
+  WechatTicketCache,
 } from '../types';
 
 @Injectable()
@@ -16,8 +18,8 @@ export class WechatOAService {
   private readonly oaConfig: WechatOAConfig;
 
   // 缓存 access_token 和 jsapi_ticket
-  private accessTokenCache: { token: string; expiresAt: number } | null = null;
-  private jsapiTicketCache: { ticket: string; expiresAt: number } | null = null;
+  private accessTokenCache: WechatTokenCache | null = null;
+  private jsapiTicketCache: WechatTicketCache | null = null;
 
   constructor(
     private readonly configService: ConfigService,

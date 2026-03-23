@@ -63,7 +63,9 @@ export class AlipayService {
       alipaySdk: new AlipaySdk({
         appId: this.configService.get<string>('ALIPAY_APP_ID')!,
         privateKey: this.configService.get<string>('ALIPAY_PRIVATE_KEY')!,
-        alipayPublicKey: this.configService.get<string>('ALIPAY_ALIPAY_PUBLIC_KEY')!,
+        alipayPublicKey: this.configService.get<string>(
+          'ALIPAY_ALIPAY_PUBLIC_KEY',
+        )!,
       }),
     };
   }

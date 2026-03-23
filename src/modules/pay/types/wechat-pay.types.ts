@@ -1,40 +1,9 @@
 /**
  * 微信支付类型定义
- * 包含微信 Native 支付、JSAPI 支付、公众号/小程序相关的类型定义
+ * 包含微信 JSAPI 支付、公众号/小程序相关的类型定义
  */
 
-import type { PayChannel, TradeState } from '@/modules/pay/constants';
-
-/**
- * 微信 Native 支付统一下单参数（微信 API 原始字段）
- */
-export interface WechatPayUnifiedOrderParams {
-  appid: string;
-  mchid: string;
-  description: string;
-  out_trade_no: string;
-  notify_url: string;
-  amount: {
-    total: number;
-  };
-  payer?: {
-    openid: string;
-  };
-}
-
-/**
- * 微信 Native 支付统一下单响应（code_url）
- */
-export interface WechatPayNativeOrderResponse {
-  codeUrl: string;
-}
-
-/**
- * 微信 JSAPI 支付统一下单响应（prepay_id）
- */
-export interface WechatPayJsapiOrderResponse {
-  prepayId: string;
-}
+import type { TradeState } from '@/modules/pay/constants';
 
 /**
  * 微信 JSAPI 调起支付参数
@@ -78,27 +47,6 @@ export interface WechatOAConfig {
 }
 
 /**
- * 微信公众号获取 OpenId 参数
- */
-export interface WechatOAOpenIdParams {
-  appId: string;
-  appSecret: string;
-  code: string;
-  grantType: string;
-}
-
-/**
- * 微信公众号获取 OpenId 响应
- */
-export interface WechatOAOpenIdResponse {
-  accessToken: string;
-  expiresIn: number;
-  refreshToken: string;
-  openid: string;
-  scope: string;
-}
-
-/**
  * 微信公众号 Code 换取 OpenId 结果
  */
 export interface WechatOAOpenIdResult {
@@ -120,19 +68,35 @@ export interface WechatOAJsSdkSignature {
 }
 
 /**
- * 微信小程序获取 OpenId 参数
+ * 微信 API 凭证缓存
  */
-export interface WechatMPOpenIdParams {
-  appId: string;
-  appSecret: string;
-  jsCode: string;
-  grantType: string;
+export interface WechatTokenCache {
+  token: string;
+  expiresAt: number;
 }
 
 /**
- * 微信小程序获取 OpenId 响应
+ * 微信 JSAPI Ticket 缓存
  */
-export interface WechatMPOpenIdResponse {
+export interface WechatTicketCache {
+  ticket: string;
+  expiresAt: number;
+}
+
+/* ==================== 微信小程序相关类型 ==================== */
+
+/**
+ * 微信小程序 App 配置
+ */
+export interface WechatMPConfig {
+  appId: string;
+  appSecret: string;
+}
+
+/**
+ * 微信小程序 Code 换取 OpenId 结果
+ */
+export interface WechatMPOpenIdResult {
   openid: string;
   sessionKey?: string;
 }

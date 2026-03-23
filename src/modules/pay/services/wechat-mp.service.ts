@@ -4,6 +4,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { LoggingService } from '@/common/services/logging.service';
 import { PAY_CONSTANTS } from '../constants';
+import type { WechatMPConfig, WechatMPOpenIdResult } from '../types';
 
 /**
  * 微信小程序服务
@@ -11,7 +12,7 @@ import { PAY_CONSTANTS } from '../constants';
  */
 @Injectable()
 export class WechatMPService {
-  private readonly config: { appId: string; appSecret: string };
+  private readonly config: WechatMPConfig;
 
   constructor(
     private readonly configService: ConfigService,
@@ -25,7 +26,7 @@ export class WechatMPService {
    * @description 获取微信小程序配置
    * @throws InternalServerErrorException 当配置缺失时抛出异常
    */
-  private getWxMpConfig(): { appId: string; appSecret: string } {
+  private getWxMpConfig(): WechatMPConfig {
     const requiredConfigs = ['WX_MP_APP_ID', 'WX_MP_APP_SECRET'];
 
     const missingConfigs = requiredConfigs.filter(
@@ -50,7 +51,7 @@ export class WechatMPService {
    * @param code 微信小程序登录 code
    * @returns OpenId
    */
-  async getOpenIdByCode(code: string): Promise<string> {
+  async getOpenIdByCode(code: string): Promise<WechatMPOpenIdResult> {
     try {
       const url =
         PAY_CONSTANTS.WX_API_CONFIG.API_DOMAIN +
