@@ -243,6 +243,69 @@ async getList() {}
 async create() {}
 ```
 
+### 环境变量配置规范
+
+所有依赖环境变量的 Service，必须在构造器中**集中校验**配置，不得分散读取或单独抛错。
+
+#### 正确模式：统一校验
+
+```typescript
+// ✅ 构造器中统一获取并校验，一次性收集所有缺失项
+constructor(private readonly configService: ConfigService) {
+  this.config = this.getServiceConfig();
+}
+
+private getServiceConfig(): ServiceConfig {
+  const requiredKeys = ['APP_ID', 'APP_SECRET', 'TOKEN'];
+
+  const missing = requiredKeys.filter(
+    (key) => !this.configService.get<string>(key),
+  );
+
+  if (missing.length > 0) {
+    this.logger.error(`[服务名] 配置缺失: ${missing.join(', ')}`);
+    throw new InternalServerErrorException('服务配置不完整');
+  }
+
+  return {
+    appId: this.configService.get<string>('APP_ID')!,
+    appSecret: this.configService.get<string>('APP_SECRET')!,
+    token: this.configService.get<string>('TOKEN')!,
+  };
+}
+```
+
+#### 错误模式（避免）
+
+```typescript
+// ❌ 分散读取 + ?? '' 兜底，缺失时静默为空，后续报错不明确
+this.appId = this.configService.get<string>('APP_ID') ?? '';
+
+// ❌ 在单独方法中用原生 Error 抛错，类型不一致，日志缺失
+private initKey() {
+  if (!key) throw new Error('KEY 未配置'); // 抛出原生 Error
+}
+
+// ❌ 逐个单独校验，缺失一项就抛错，信息不完整
+if (!this.configService.get('APP_ID')) {
+  throw new InternalServerErrorException('APP_ID 未配置');
+}
+if (!this.configService.get('APP_SECRET')) {
+  throw new InternalServerErrorException('APP_SECRET 未配置');
+}
+```
+
+#### 关键要点
+
+| 要求 | 说明 |
+|------|------|
+| 集中校验 | 在一个 `getXxxConfig()` 方法中统一校验所有必填配置 |
+| 一次性报错 | 缺失多个配置时，一次性列出所有缺失项 |
+| 日志记录 | 抛异常前使用 `loggingService.error` 记录具体缺失的 key |
+| 异常类型 | 使用 `InternalServerErrorException`，不抛出原生 `Error` |
+| 非空断言 | 校验通过后使用 `!` 非空断言获取值，确保类型安全 |
+| 不可变赋值 | 校验后的配置赋值给 `readonly` 字段，构造器外不可修改 |
+
 ## 项目结构参考
 
 ```
@@ -298,6 +361,265 @@ src/
 - [ ] 在 BusinessModule 中注册
 - [ ] 运行 lint 检查代码格式
 - [ ] 启动服务访问 /api/docs 验证 Swagger 文档
+
+## 高级设计规范
+
+### 并发安全
+
+在高并发场景下（如支付回调、订单创建），必须考虑并发安全问题：
+
+#### 1. 使用分布式锁
+
+使用 `DistributedLockService` 确保同一操作在分布式环境下只执行一次：
+
+```typescript
+import { DistributedLockService } from '@/common/services/distributed-lock.service';
+
+constructor(
+  private readonly distributedLockService: DistributedLockService,
+) {}
+
+// 订单创建场景
+async createOrder(userId: number, dto: CreateOrderDto) {
+  const lockKey = `order:create:${userId}:${dto.goodsId}`;
+  return await this.distributedLockService.withLock(lockKey, async () => {
+    // 业务逻辑
+    return await this.processOrder(userId, dto);
+  }, 60000); // 60秒超时
+}
+
+// 支付回调场景
+async handleNotify(params: any) {
+  const lockKey = `order:notify:${params.outTradeNo}`;
+  return await this.distributedLockService.withLock(lockKey, async () => {
+    // 回调处理逻辑
+    return await this.processCallback(params);
+  }, 30000); // 30秒超时
+}
+```
+
+#### 2. 数据库事务
+
+涉及多个表操作时必须使用事务：
+
+```typescript
+import { DataSource } from 'typeorm';
+
+constructor(private readonly dataSource: DataSource) {}
+
+async createOrderWithTransaction(dto: CreateOrderDto) {
+  const queryRunner = this.dataSource.createQueryRunner();
+  await queryRunner.connect();
+  await queryRunner.startTransaction();
+
+  try {
+    // 创建订单
+    const order = queryRunner.manager.create(Order, { ... });
+    await queryRunner.manager.save(order);
+
+    // 创建关联记录
+    const detail = queryRunner.manager.create(OrderDetail, { ... });
+    await queryRunner.manager.save(detail);
+
+    await queryRunner.commitTransaction();
+    return order;
+  } catch (error) {
+    await queryRunner.rollbackTransaction();
+    throw error;
+  } finally {
+    await queryRunner.release();
+  }
+}
+```
+
+#### 3. 悲观锁
+
+查询需要更新的数据时使用悲观锁：
+
+```typescript
+// 使用 FOR UPDATE 锁定行
+const order = await queryRunner.manager.findOne(Order, {
+  where: { outTradeNo },
+  lock: { mode: 'pessimistic_write' },
+});
+```
+
+### 幂等性设计
+
+支付等关键业务必须保证幂等性，防止重复操作：
+
+#### 1. 回调处理幂等性
+
+```typescript
+async handlePaymentCallback(params: PaymentCallbackParams) {
+  const lockKey = `pay:notify:${params.outTradeNo}`;
+
+  return await this.distributedLockService.withLock(lockKey, async () => {
+    // 检查订单是否已处理
+    const existingOrder = await this.orderRepository.findOne({
+      where: { outTradeNo: params.outTradeNo },
+    });
+
+    // 已成功处理的订单，直接返回成功
+    if (existingOrder?.tradeState === TRADE_STATE.SUCCESS) {
+      return { success: true, message: '订单已处理' };
+    }
+
+    // 更新订单状态
+    await this.orderRepository.update(
+      { outTradeNo: params.outTradeNo },
+      { tradeState: TRADE_STATE.SUCCESS, ... }
+    );
+
+    return { success: true };
+  }, 30000);
+}
+```
+
+#### 2. 订单创建幂等性
+
+```typescript
+async createOrder(dto: CreateOrderDto) {
+  // 生成唯一订单号
+  const outTradeNo = ICrypto.generateRandomString(32);
+  const lockKey = `order:create:${outTradeNo}`;
+
+  return await this.distributedLockService.withLock(lockKey, async () => {
+    // 检查是否已存在
+    const existing = await this.orderRepository.findOne({ where: { outTradeNo } });
+    if (existing) {
+      throw new BadRequestException('订单已存在，请勿重复创建');
+    }
+
+    // 创建订单
+    const order = this.orderRepository.create({ outTradeNo, ... });
+    return await this.orderRepository.save(order);
+  }, 60000);
+}
+```
+
+#### 3. 分布式锁表 SQL
+
+```sql
+-- 分布式锁表
+CREATE TABLE `distributed_locks` (
+  `lock_key` VARCHAR(255) NOT NULL COMMENT '锁的键',
+  `owner_id` VARCHAR(255) NOT NULL COMMENT '锁持有者ID',
+  `expire_at` TIMESTAMP NOT NULL COMMENT '过期时间',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  PRIMARY KEY (`lock_key`),
+  INDEX `idx_expire_at` (`expire_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分布式锁记录表';
+```
+
+### 日志规范
+
+关键操作必须记录结构化日志，包含业务追踪字段：
+
+```typescript
+// ✅ 推荐：包含业务追踪字段
+this.loggingService.log(
+  `[支付回调] 收到通知 - outTradeNo: ${outTradeNo}, tradeState: ${tradeState}`,
+);
+
+// ❌ 避免：缺少业务追踪字段
+this.logger.log('处理回调');
+```
+
+### 常量命名规范
+
+使用命名空间组织相关常量：
+
+```typescript
+// ✅ 推荐：命名空间组织
+export const PAY_CONSTANTS = {
+  CHANNEL: {
+    ALIPAY: 'alipay',
+    WECHAT: 'wechat',
+  },
+  STATUS: {
+    PENDING: 'pending',
+    SUCCESS: 'success',
+  },
+  LOCK_KEYS: {
+    ORDER_CREATE: 'pay:order:create:',
+    ORDER_NOTIFY: 'pay:order:notify:',
+  },
+} as const;
+
+// ❌ 避免：平铺常量
+export const PAY_CHANNEL = 'alipay';
+export const PAY_STATUS = 'pending';
+```
+
+### 注释规范
+
+所有 Service、工具类等公共方法必须使用 **JSDoc 风格注释**，包含以下要素：
+
+#### 必填要素
+
+| 标签 | 说明 | 示例 |
+|------|------|------|
+| `@description` | 方法功能描述 | `@description 生成指定长度的唯一随机字符串` |
+| `@param` | 参数说明（包含类型） | `@param {number} length 字符串长度` |
+| `@returns` | 返回值说明 | `@returns {string} 生成的唯一随机字符串` |
+| `@example` | 使用示例（可选但推荐） | `@example ICrypto.generateRandomString(16)` |
+
+#### 注释模板
+
+```typescript
+/**
+ * @description 方法功能描述
+ * @param {参数类型} paramName 参数说明
+ * @param {参数类型} [optionalParam] 可选参数说明（带默认值）
+ * @returns {返回值类型} 返回值说明
+ * @example
+ * const result = ClassName.methodName(arg1, arg2)
+ */
+static methodName(paramName: ParamType, optionalParam: ParamType = defaultValue): ReturnType {
+  // implementation
+}
+```
+
+#### 完整示例（参考 ICrypto）
+
+```typescript
+/**
+ * @description 生成指定长度的唯一随机字符串
+ * @param {number} length 字符串长度，默认为16
+ * @returns {string} 生成的唯一随机字符串
+ */
+static generateRandomString(length: number = 16): string {
+  // implementation
+}
+
+/**
+ * @description 创建 Hmac 签名
+ * @param {string | Buffer} data 要签名的数据
+ * @param {string} key 密钥
+ * @param {HashAlgorithm} algorithm 哈希算法
+ * @param {CryptoEncoding} encoding 输出编码格式
+ * @returns {string} 生成的签名
+ * @example
+ * const signature = ICrypto.createHmac(signatureOrigin, secret, HASH_ALGORITHMS.SHA256, ENCODINGS.BASE64)
+ */
+static createHmac(
+  data: string | Buffer,
+  key: string,
+  algorithm: HashAlgorithm = HASH_ALGORITHMS.SHA256,
+  encoding: CryptoEncoding = ENCODINGS.BASE64,
+): string {
+  // implementation
+}
+```
+
+#### 注意事项
+
+- `@param` 参数名必须与方法签名一致
+- 可选参数使用 `[paramName]` 标记，或在说明中标注"可选"
+- 带默认值的参数应说明默认值
+- `@example` 中的示例代码应可直接运行
+- 类前也需要添加 JSDoc 注释说明类的用途
 
 ## 参考资料
 

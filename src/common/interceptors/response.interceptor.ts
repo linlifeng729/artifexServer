@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { SKIP_RESPONSE_WRAP_KEY } from '../decorators';
 
 /**
  * 统一响应格式
@@ -29,6 +30,14 @@ export class ResponseInterceptor<T>
     context: ExecutionContext,
     next: CallHandler,
   ): Observable<ApiResponse<T>> {
+    // 检查是否需要跳过响应包装
+    const isSkipWrap = Reflect.getMetadata(SKIP_RESPONSE_WRAP_KEY, context.getHandler());
+
+    if (isSkipWrap) {
+      // 直接返回原始数据，不包装
+      return next.handle();
+    }
+
     return next.handle().pipe(
       map((data) => {
         // 如果响应数据已经是标准格式，直接返回

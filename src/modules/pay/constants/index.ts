@@ -4,106 +4,130 @@
  */
 
 /**
- * 支付渠道枚举
+ * 支付模块常量命名空间
+ * 统一导出所有支付常量，便于 DTO/Service/Controller 引用
  */
-export const PAY_CHANNEL = {
-  ALIPAY: 'alipay' as const, // 支付宝
-  WECHAT_PAY: 'wechat_pay' as const, // 微信支付
-  WECHAT_MP: 'wechat_mp' as const, // 小程序支付
-  WECHAT_OA: 'wechat_oa' as const, // 公众号支付
+export const PAY_CONSTANTS = {
+  /**
+   * 锁 Key 前缀
+   */
+  LOCK_KEYS: {
+    /** 订单创建锁前缀 */
+    ORDER_CREATE: 'pay:order:create:',
+    /** 订单回调处理锁前缀 */
+    ORDER_NOTIFY: 'pay:order:notify:',
+    /** 发货处理锁前缀 */
+    ORDER_DELIVERY: 'pay:order:delivery:',
+  },
+
+  /**
+   * 支付渠道
+   */
+  CHANNEL: {
+    /** 支付宝扫码支付 */
+    ALIPAY: 'alipay' as const,
+    /** 支付宝H5支付 */
+    ALIPAY_H5: 'alipay_h5' as const,
+    /** 微信支付 */
+    WECHAT_PAY: 'wechat_pay' as const,
+    /** 微信小程序支付 */
+    WECHAT_MP: 'wechat_mp' as const,
+    /** 微信公众号支付 */
+    WECHAT_OA: 'wechat_oa' as const,
+  },
+
+  /**
+   * 交易状态
+   */
+  STATUS: {
+    /** 等待买家付款 */
+    WAIT_BUYER_PAY: 'WAIT_BUYER_PAY' as const,
+    /** 交易支付成功 */
+    TRADE_SUCCESS: 'TRADE_SUCCESS' as const,
+    /** 交易结束，不可退款 */
+    TRADE_FINISHED: 'TRADE_FINISHED' as const,
+    /** 交易关闭（未付款） */
+    TRADE_CLOSED: 'TRADE_CLOSED' as const,
+    /** 订单退款 */
+    TRADE_REFUND: 'REFUND' as const,
+  },
+
+  /**
+   * 发货状态
+   */
+  DELIVERY: {
+    NOT_DELIVERED: 0 as const,
+    DELIVERED: 1 as const,
+    DELIVERY_FAILED: 2 as const,
+  },
+
+  /**
+   * 字段长度限制
+   */
+  CONSTRAINTS: {
+    OUT_TRADE_NO_MAX_LENGTH: 32,
+    DESCRIPTION_MAX_LENGTH: 255,
+    CALLBACK_URL_MAX_LENGTH: 255,
+    APP_ID_MAX_LENGTH: 32,
+    TRANSACTION_ID_MAX_LENGTH: 64,
+    MIN_AMOUNT: 1,
+  },
+
+  /**
+   * 微信支付接口地址
+   */
+  WX_PAY_API: {
+    NATIVE: '/v3/pay/transactions/native',
+    JSAPI: '/v3/pay/transactions/jsapi',
+    H5: '/v3/pay/transactions/h5',
+  },
+
+  /**
+   * 微信 API 域名
+   */
+  WX_API_CONFIG: {
+    MCH_DOMAIN: 'https://api.mch.weixin.qq.com',
+    API_DOMAIN: 'https://api.weixin.qq.com',
+  },
+
+  /**
+   * 微信 API 接口路径（需拼接 WX_API_CONFIG.API_DOMAIN 使用）
+   */
+  WX_API: {
+    /** 微信公众号授权获取 OpenId */
+    OA_ACCESS_TOKEN: '/sns/oauth2/access_token',
+    /** 微信公众号全局 AccessToken */
+    OA_TOKEN: '/cgi-bin/token',
+    /** 微信公众号 JSAPI Ticket */
+    OA_JSAPI_TICKET: '/cgi-bin/ticket/getticket',
+    /** 微信小程序登录获取 OpenId */
+    MP_JSCODE2SESSION: '/sns/jscode2session',
+  },
+
+  /**
+   * 支付宝接口类型
+   */
+  ALIPAY_INTERFACE: {
+    /** 扫码支付 */
+    FACE_TO_FACE_PAY: 'alipay.trade.page.pay',
+    /** H5支付 */
+    WAP_PAY: 'alipay.trade.wap.pay',
+  },
+
+  /**
+   * 回调域名
+   */
+  DOMAIN: 'https://linlifeng.top',
 } as const;
 
-/**
- * 交易状态枚举
- */
-export const TRADE_STATE = {
-  /** 等待买家付款 */
-  WAIT_BUYER_PAY: 'WAIT_BUYER_PAY' as const,
-  /** 交易支付成功 */
-  TRADE_SUCCESS: 'TRADE_SUCCESS' as const,
-  /** 交易结束，不可退款 */
-  TRADE_FINISHED: 'TRADE_FINISHED' as const,
-  /** 交易关闭（未付款） */
-  TRADE_CLOSED: 'TRADE_CLOSED' as const,
-  /** 订单退款 */
-  TRADE_REFUND: 'REFUND' as const,
-} as const;
+/* -------------------- 类型导出 -------------------- */
 
-/**
- * 发货状态枚举
- */
-export const DELIVERY_STATUS = {
-  NOT_DELIVERED: 0 as const, // 未发货
-  DELIVERED: 1 as const, // 已发货
-  DELIVERY_FAILED: 2 as const, // 发货失败
-} as const;
+/** 支付渠道类型 */
+export type PayChannel = (typeof PAY_CONSTANTS.CHANNEL)[keyof typeof PAY_CONSTANTS.CHANNEL];
 
-/**
- * 支付渠道类型定义
- */
-export type PayChannel = (typeof PAY_CHANNEL)[keyof typeof PAY_CHANNEL];
+/** 交易状态类型 */
+export type TradeState = (typeof PAY_CONSTANTS.STATUS)[keyof typeof PAY_CONSTANTS.STATUS];
 
-/**
- * 交易状态类型定义
- */
-export type TradeState = (typeof TRADE_STATE)[keyof typeof TRADE_STATE];
-
-/**
- * 发货状态类型定义
- */
+/** 发货状态类型 */
 export type DeliveryStatus =
-  (typeof DELIVERY_STATUS)[keyof typeof DELIVERY_STATUS];
-
-/**
- * 字段长度限制
- */
-export const PAY_CONSTRAINTS = {
-  OUT_TRADE_NO_MAX_LENGTH: 64,
-  DESCRIPTION_MAX_LENGTH: 255,
-  CALLBACK_URL_MAX_LENGTH: 255,
-  APP_ID_MAX_LENGTH: 32,
-  TRANSACTION_ID_MAX_LENGTH: 64,
-  MIN_AMOUNT: 1, // 最小金额（分）
-} as const;
-
-/**
- * 微信支付接口地址
- */
-export const WX_PAY_API = {
-  /** 微信 Native 支付 */
-  NATIVE: '/v3/pay/transactions/native',
-  /** 微信 JSAPI 支付 */
-  JSAPI: '/v3/pay/transactions/jsapi',
-  /** 微信 H5 支付 */
-  H5: '/v3/pay/transactions/h5',
-} as const;
-
-/**
- * 微信 API 域名
- */
-export const WX_API_CONFIG = {
-  MCH_DOMAIN: 'https://api.mch.weixin.qq.com',
-  API_DOMAIN: 'https://api.weixin.qq.com',
-} as const;
-
-/**
- * 支付宝接口类型枚举
- */
-export const ALIPAY_ORDER_INTERFACE = {
-  /** PC 端二维码支付 */
-  PAGE_PAY: 'alipay.trade.page.pay',
-  /** H5 支付 */
-  WAP_PAY: 'alipay.trade.wap.pay',
-} as const;
-
-export type AlipayOrderInterface =
-  (typeof ALIPAY_ORDER_INTERFACE)[keyof typeof ALIPAY_ORDER_INTERFACE];
-
-/**
- * 分页相关限制
- */
-export const PAGINATION_CONSTRAINTS = {
-  DEFAULT_PAGE: 1,
-  DEFAULT_LIMIT: 10,
-  MAX_LIMIT: 100,
-} as const;
+  (typeof PAY_CONSTANTS.DELIVERY)[keyof typeof PAY_CONSTANTS.DELIVERY];

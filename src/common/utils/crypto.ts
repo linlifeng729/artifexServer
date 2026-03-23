@@ -12,6 +12,9 @@ import {
   ENCODINGS,
   AES_ALGORITHMS,
   AES_CONFIG,
+  PRIVATE_KEY_FORMAT,
+  PRIVATE_KEY_TYPE,
+  PRIVATE_KEY_EXPORT_OPTIONS,
 } from '@/common/types/crypto';
 
 export class ICrypto {
@@ -177,6 +180,43 @@ export class ICrypto {
     const verify = crypto.createVerify(algorithm);
     verify.update(originalData);
     return verify.verify(publicKey, signature, encoding);
+  }
+
+  /**
+   * @description 从 base64 编码的 DER 数据创建私钥 KeyObject（PKCS#8 格式）
+   * @param {string} privateKeyBase64 base64 编码的私钥
+   * @returns {crypto.KeyObject} 私钥对象
+   * @example
+   * const privateKey = ICrypto.createPrivateKeyFromBase64('MIIEvQIBADANBgk...')
+   */
+  static createPrivateKeyFromBase64(privateKeyBase64: string): crypto.KeyObject {
+    const keyBuffer = Buffer.from(privateKeyBase64, 'base64');
+    return crypto.createPrivateKey({
+      key: keyBuffer,
+      format: PRIVATE_KEY_FORMAT,
+      type: PRIVATE_KEY_TYPE,
+    });
+  }
+
+  /**
+   * @description 使用 KeyObject 私钥创建签名（自动处理格式转换）
+   * @param {string | Buffer} data 要签名的数据
+   * @param {crypto.KeyObject} privateKey 私钥对象
+   * @param {SignAlgorithm} algorithm 签名算法
+   * @param {CryptoEncoding} encoding 输出编码格式
+   * @returns {string} 生成的签名
+   * @example
+   * const privateKey = ICrypto.createPrivateKeyFromBase64('MIIEvQIBADANBgk...')
+   * const signature = ICrypto.createSignWithKeyObject(data, privateKey, SIGN_ALGORITHMS.RSA_SHA256, ENCODINGS.BASE64)
+   */
+  static createSignWithKeyObject(
+    data: string | Buffer,
+    privateKey: crypto.KeyObject,
+    algorithm: SignAlgorithm = SIGN_ALGORITHMS.RSA_SHA256,
+    encoding: CryptoEncoding = ENCODINGS.BASE64,
+  ): string {
+    const pem = privateKey.export(PRIVATE_KEY_EXPORT_OPTIONS) as string;
+    return this.createSign(data, pem, algorithm, encoding);
   }
 
   /**

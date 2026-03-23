@@ -3,16 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { ICrypto } from '@/common/utils/crypto';
+import { LoggingService } from '@/common/services/logging.service';
+import { PAY_CONSTANTS } from '../constants';
+import {
+  WechatOAConfig,
+  WechatOAOpenIdResult,
+  WechatOAJsSdkSignature,
+} from '../types';
 
-/**
- * 微信公众号服务
- * 处理微信公众号相关业务逻辑
- */
 @Injectable()
 export class WechatOAService {
-  private readonly appId: string;
-  private readonly appSecret: string;
-  private readonly token: string;
+  private readonly oaConfig: WechatOAConfig;
 
   // 缓存 access_token 和 jsapi_ticket
   private accessTokenCache: { token: string; expiresAt: number } | null = null;
@@ -21,10 +22,39 @@ export class WechatOAService {
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
+    private readonly loggingService: LoggingService,
   ) {
-    this.appId = this.configService.get<string>('wechatOA.appId') ?? '';
-    this.appSecret = this.configService.get<string>('wechatOA.appSecret') ?? '';
-    this.token = this.configService.get<string>('wechatOA.token') ?? '';
+    this.oaConfig = this.getOaConfig();
+  }
+
+  /**
+   * 获取微信公众号配置
+   * @throws InternalServerErrorException 当配置缺失时抛出异常
+   */
+  private getOaConfig(): WechatOAConfig {
+    const requiredConfigs = [
+      'WX_OA_APP_ID',
+      'WX_OA_APP_SECRET',
+      'WX_TOKEN',
+    ];
+
+    const missingConfigs = requiredConfigs.filter(
+      (key) => !this.configService.get<string>(key),
+    );
+
+    if (missingConfigs.length > 0) {
+      this.loggingService.error(
+        '微信公众号配置缺失: ',
+        missingConfigs.join(','),
+      );
+      throw new InternalServerErrorException('微信公众号配置不完整');
+    }
+
+    return {
+      appId: this.configService.get<string>('WX_OA_APP_ID')!,
+      appSecret: this.configService.get<string>('WX_OA_APP_SECRET')!,
+      token: this.configService.get<string>('WX_TOKEN')!,
+    };
   }
 
   /**
@@ -40,9 +70,10 @@ export class WechatOAService {
     timestamp: string,
     nonce: string,
     echostr: string,
-  ): boolean {
-    const arr = [this.token, timestamp, nonce];
-    return ICrypto.verifyHash(arr.sort().join(''), signature, 'sha1', 'hex');
+  ): string {
+    const arr = [this.oaConfig.token, timestamp, nonce];
+    const isValidSignature = ICrypto.verifyHash(arr.sort().join(''), signature, 'sha1', 'hex')
+    return isValidSignature ? echostr : ''
   }
 
   /**
@@ -50,20 +81,16 @@ export class WechatOAService {
    * @param code 微信授权 code
    * @returns OpenId 和 AccessToken
    */
-  async getOpenIdByCode(code: string): Promise<{
-    openid: string;
-    accessToken: string;
-    expiresIn: number;
-    refreshToken: string;
-    scope: string;
-  }> {
+  async getOpenIdByCode(code: string): Promise<WechatOAOpenIdResult> {
     try {
-      const url = 'https://api.weixin.qq.com/sns/oauth2/access_token';
+      const url =
+        PAY_CONSTANTS.WX_API_CONFIG.API_DOMAIN +
+        PAY_CONSTANTS.WX_API.OA_ACCESS_TOKEN;
 
       const params = {
         grant_type: 'authorization_code',
-        appid: this.appId,
-        secret: this.appSecret,
+        appid: this.oaConfig.appId,
+        secret: this.oaConfig.appSecret,
         code,
       };
 
@@ -96,17 +123,21 @@ export class WechatOAService {
    */
   async getAccessToken(): Promise<string> {
     // 检查缓存
-    if (this.accessTokenCache && Date.now() < this.accessTokenCache.expiresAt) {
+    if (
+      this.accessTokenCache &&
+      Date.now() < this.accessTokenCache.expiresAt
+    ) {
       return this.accessTokenCache.token;
     }
 
     try {
-      const url = 'https://api.weixin.qq.com/cgi-bin/token';
+      const url =
+        PAY_CONSTANTS.WX_API_CONFIG.API_DOMAIN + PAY_CONSTANTS.WX_API.OA_TOKEN;
 
       const params = {
         grant_type: 'client_credential',
-        appid: this.appId,
-        secret: this.appSecret,
+        appid: this.oaConfig.appId,
+        secret: this.oaConfig.appSecret,
       };
 
       const response = await firstValueFrom(
@@ -138,13 +169,18 @@ export class WechatOAService {
    */
   async getJsapiTicket(): Promise<string> {
     // 检查缓存
-    if (this.jsapiTicketCache && Date.now() < this.jsapiTicketCache.expiresAt) {
+    if (
+      this.jsapiTicketCache &&
+      Date.now() < this.jsapiTicketCache.expiresAt
+    ) {
       return this.jsapiTicketCache.ticket;
     }
 
     try {
       const accessToken = await this.getAccessToken();
-      const url = 'https://api.weixin.qq.com/cgi-bin/ticket/getticket';
+      const url =
+        PAY_CONSTANTS.WX_API_CONFIG.API_DOMAIN +
+        PAY_CONSTANTS.WX_API.OA_JSAPI_TICKET;
 
       const params = {
         access_token: accessToken,
@@ -180,12 +216,9 @@ export class WechatOAService {
    * @param url 当前网页的 URL
    * @returns 签名信息
    */
-  async generateJsSdkSignature(url: string): Promise<{
-    signature: string;
-    timestamp: string;
-    nonceStr: string;
-    appId: string;
-  }> {
+  async generateJsSdkSignature(
+    url: string,
+  ): Promise<WechatOAJsSdkSignature> {
     const nonceStr = ICrypto.generateRandomString();
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const ticket = await this.getJsapiTicket();
@@ -204,7 +237,7 @@ export class WechatOAService {
       signature,
       timestamp,
       nonceStr,
-      appId: this.appId,
+      appId: this.oaConfig.appId,
     };
   }
 }

@@ -4,27 +4,28 @@ import {
   Post,
   Body,
   Query,
-  Param,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
 import { PayService } from './services/pay.service';
+import { AlipayService } from './services/alipay.service';
+import { WechatPayService } from './services/wechat-pay.service';
 import { WechatMPService } from './services/wechat-mp.service';
 import { WechatOAService } from './services/wechat-oa.service';
-import { QueryPayOrderDto } from './dto/query-pay-order.dto';
 import { CreatePayOrderDto } from './dto/create-pay-order.dto';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt.guard';
-import { CurrentUser } from '@/modules/auth/decorators';
-import { Public } from '@/modules/auth/decorators';
-import { ApiResponse } from '@/common/interceptors/response.interceptor';
+import { CurrentUser, Public } from '@/modules/auth/decorators';
+import { PlainResponse } from '@/common/decorators';
 import { ResponseHelper } from '@/common/utils/response.helper';
+import { WechatPayNotifyDto, AlipayPayNotifyDto } from './dto/pay-notify.dto';
 import {
   ApiTags,
   ApiOperation,
   ApiQuery,
   ApiBearerAuth,
-  ApiResponse as SwaggerApiResponse,
+  ApiResponse,
+  ApiBody,
 } from '@nestjs/swagger';
 
 /**
@@ -35,6 +36,8 @@ import {
 export class PayController {
   constructor(
     private readonly payService: PayService,
+    private readonly alipayService: AlipayService,
+    private readonly wechatPayService: WechatPayService,
     private readonly wechatMPService: WechatMPService,
     private readonly wechatOAService: WechatOAService,
   ) {}
@@ -51,9 +54,7 @@ export class PayController {
     type: String,
   })
   @Get('wechatMP/openId')
-  async getWechatMPOpenId(
-    @Query('code') code: string,
-  ): Promise<ApiResponse<{ openid: string }>> {
+  async getWechatMPOpenId(@Query('code') code: string) {
     const openid = await this.wechatMPService.getOpenIdByCode(code);
     return ResponseHelper.success({ openid }, '获取OpenId成功');
   }
@@ -70,15 +71,7 @@ export class PayController {
     type: String,
   })
   @Get('wechatOA/openId')
-  async getWechatOAOpenId(@Query('code') code: string): Promise<
-    ApiResponse<{
-      openid: string;
-      accessToken: string;
-      expiresIn: number;
-      refreshToken: string;
-      scope: string;
-    }>
-  > {
+  async getWechatOAOpenId(@Query('code') code: string) {
     const result = await this.wechatOAService.getOpenIdByCode(code);
     return ResponseHelper.success(result, '获取OpenId成功');
   }
@@ -95,22 +88,17 @@ export class PayController {
     type: String,
   })
   @Get('wechatOA/signature')
-  async getWechatOASignature(@Query('url') url: string): Promise<
-    ApiResponse<{
-      signature: string;
-      timestamp: string;
-      nonceStr: string;
-      appId: string;
-    }>
-  > {
+  async getWechatOASignature(@Query('url') url: string) {
     const result = await this.wechatOAService.generateJsSdkSignature(url);
     return ResponseHelper.success(result, '获取签名成功');
   }
 
   /**
    * 验证微信公众号服务器签名
+   * @PlainResponse 跳过响应包装，直接返回纯文本（微信服务器需要）
    */
   @Public()
+  @PlainResponse()
   @ApiOperation({ summary: '验证微信公众号服务器签名' })
   @ApiQuery({
     name: 'signature',
@@ -142,14 +130,14 @@ export class PayController {
     @Query('timestamp') timestamp: string,
     @Query('nonce') nonce: string,
     @Query('echostr') echostr: string,
-  ): Promise<string> {
-    const isValid = this.wechatOAService.verifyServerSignature(
+  ) {
+    const result = this.wechatOAService.verifyServerSignature(
       signature,
       timestamp,
       nonce,
       echostr,
     );
-    return isValid ? echostr : '';
+    return result
   }
 
   /**
@@ -158,12 +146,16 @@ export class PayController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: '创建支付订单' })
-  @SwaggerApiResponse({ status: 201, description: '订单创建成功' })
+  @ApiBody({ type: CreatePayOrderDto })
+  @ApiResponse({
+    status: 201,
+    description: '订单创建成功',
+  })
   @Post('createOrder')
   async createOrder(
     @CurrentUser('userId') userId: number,
     @Body() createPayOrderDto: CreatePayOrderDto,
-  ): Promise<ApiResponse<{ outTradeNo: string; paymentData: any }>> {
+  ) {
     const result = await this.payService.createPayOrder(
       userId,
       createPayOrderDto,
@@ -176,13 +168,24 @@ export class PayController {
    */
   @Public()
   @ApiOperation({ summary: '支付宝支付回调通知' })
-  @SwaggerApiResponse({ status: 200, description: '处理成功' })
+  @ApiBody({ type: AlipayPayNotifyDto })
+  @ApiResponse({
+    status: 200,
+    description: '处理成功',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', example: 'SUCCESS', description: '状态码' },
+        msg: { type: 'string', example: '处理成功', description: '消息' },
+      },
+    },
+  })
   @Post('notify/alipay')
   @HttpCode(HttpStatus.OK)
   async alipayNotify(
-    @Body() body: any,
+    @Body() body: AlipayPayNotifyDto,
   ): Promise<{ code: string; msg: string }> {
-    const success = await this.payService.handleAlipayNotify(body);
+    const success = await this.alipayService.handleAlipayNotify(body);
     if (success) {
       return { code: 'SUCCESS', msg: '处理成功' };
     } else {
@@ -195,13 +198,24 @@ export class PayController {
    */
   @Public()
   @ApiOperation({ summary: '微信支付回调通知' })
-  @SwaggerApiResponse({ status: 200, description: '处理成功' })
+  @ApiBody({ type: WechatPayNotifyDto })
+  @ApiResponse({
+    status: 200,
+    description: '处理成功',
+    schema: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', example: 'SUCCESS', description: '状态码' },
+        msg: { type: 'string', example: '处理成功', description: '消息' },
+      },
+    },
+  })
   @Post('notify/wechatPay')
   @HttpCode(HttpStatus.OK)
   async wechatPayNotify(
-    @Body() body: any,
+    @Body() body: WechatPayNotifyDto,
   ): Promise<{ code: string; msg: string }> {
-    const success = await this.payService.handleWechatPayNotify(body);
+    const success = await this.wechatPayService.handleWechatPayNotify(body);
     if (success) {
       return { code: 'SUCCESS', msg: '处理成功' };
     } else {
@@ -209,41 +223,4 @@ export class PayController {
     }
   }
 
-  /**
-   * 获取用户订单列表
-   */
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取用户订单列表' })
-  @Get('orders')
-  async getUserOrders(
-    @CurrentUser('userId') userId: number,
-    @Query() queryDto: QueryPayOrderDto,
-  ): Promise<
-    ApiResponse<{
-      list: any[];
-      total: number;
-      page: number;
-      limit: number;
-      totalPages: number;
-    }>
-  > {
-    const result = await this.payService.getUserPayOrders(userId, queryDto);
-    return ResponseHelper.success(result, '获取订单列表成功');
-  }
-
-  /**
-   * 获取订单详情
-   */
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: '获取订单详情' })
-  @Get('orders/:outTradeNo')
-  async getOrderDetail(
-    @CurrentUser('userId') userId: number,
-    @Param('outTradeNo') outTradeNo: string,
-  ): Promise<ApiResponse<any>> {
-    const order = await this.payService.getOrderDetail(outTradeNo, userId);
-    return ResponseHelper.success(order, '获取订单详情成功');
-  }
 }

@@ -5,7 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { PAY_CONSTRAINTS, DELIVERY_STATUS } from '@/modules/pay/constants';
+import { PAY_CONSTANTS } from '@/modules/pay/constants';
 
 /**
  * 支付发货记录实体
@@ -19,7 +19,7 @@ export class PayDelivery {
   @Column({
     name: 'order_id',
     type: 'varchar',
-    length: PAY_CONSTRAINTS.OUT_TRADE_NO_MAX_LENGTH,
+    length: PAY_CONSTANTS.CONSTRAINTS.OUT_TRADE_NO_MAX_LENGTH,
     unique: true,
     nullable: false,
     comment: '商户订单号',
@@ -45,7 +45,7 @@ export class PayDelivery {
   @Column({
     name: 'delivery_status',
     type: 'tinyint',
-    default: DELIVERY_STATUS.NOT_DELIVERED,
+    default: PAY_CONSTANTS.DELIVERY.NOT_DELIVERED,
     comment: '发货状态：0-未发货，1-已发货，2-发货失败',
   })
   deliveryStatus: number;
@@ -61,7 +61,7 @@ export class PayDelivery {
   @Column({
     name: 'delivery_message',
     type: 'varchar',
-    length: PAY_CONSTRAINTS.DESCRIPTION_MAX_LENGTH,
+    length: PAY_CONSTANTS.CONSTRAINTS.DESCRIPTION_MAX_LENGTH,
     nullable: true,
     comment: '发货结果信息',
   })

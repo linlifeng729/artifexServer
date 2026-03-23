@@ -5,11 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import {
-  PAY_CONSTRAINTS,
-  TRADE_STATE,
-  PAY_CHANNEL,
-} from '@/modules/pay/constants';
+import { PAY_CONSTANTS } from '@/modules/pay/constants';
 
 /**
  * 支付订单实体
@@ -23,7 +19,7 @@ export class PayOrder {
   @Column({
     name: 'out_trade_no',
     type: 'varchar',
-    length: PAY_CONSTRAINTS.OUT_TRADE_NO_MAX_LENGTH,
+    length: PAY_CONSTANTS.CONSTRAINTS.OUT_TRADE_NO_MAX_LENGTH,
     unique: true,
     nullable: false,
     comment: '商户订单号（外部订单号）',
@@ -74,7 +70,7 @@ export class PayOrder {
   @Column({
     name: 'transaction_id',
     type: 'varchar',
-    length: PAY_CONSTRAINTS.TRANSACTION_ID_MAX_LENGTH,
+    length: PAY_CONSTANTS.CONSTRAINTS.TRANSACTION_ID_MAX_LENGTH,
     nullable: true,
     comment: '支付平台交易号',
   })
@@ -92,7 +88,7 @@ export class PayOrder {
   @Column({
     name: 'app_id',
     type: 'varchar',
-    length: PAY_CONSTRAINTS.APP_ID_MAX_LENGTH,
+    length: PAY_CONSTANTS.CONSTRAINTS.APP_ID_MAX_LENGTH,
     nullable: true,
     comment: '应用ID（支付宝/微信）',
   })
@@ -100,7 +96,7 @@ export class PayOrder {
 
   @Column({
     type: 'varchar',
-    length: PAY_CONSTRAINTS.DESCRIPTION_MAX_LENGTH,
+    length: PAY_CONSTANTS.CONSTRAINTS.DESCRIPTION_MAX_LENGTH,
     nullable: true,
     comment: '订单描述/商品名称',
   })
@@ -109,7 +105,7 @@ export class PayOrder {
   @Column({
     name: 'callback_url',
     type: 'varchar',
-    length: PAY_CONSTRAINTS.CALLBACK_URL_MAX_LENGTH,
+    length: PAY_CONSTANTS.CONSTRAINTS.CALLBACK_URL_MAX_LENGTH,
     nullable: true,
     comment: '支付完成后跳转的页面URL',
   })

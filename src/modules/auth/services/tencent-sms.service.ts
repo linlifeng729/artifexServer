@@ -5,29 +5,10 @@ import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
 import { LoggingService } from '@/common/services/logging.service';
 import { ApiResponse } from '@/common/interceptors/response.interceptor';
 import { ResponseHelper } from '@/common/utils/response.helper';
+import { TencentSmsConfig, SmsData } from '@/modules/auth/types';
 
 // 导入对应产品模块的client models
 const SmsClient = tencentcloud.sms.v20210111.Client;
-
-export interface TencentSmsConfig {
-  // 腾讯云API密钥ID
-  secretId: string;
-  // 腾讯云API密钥Key
-  secretKey: string;
-  // 短信应用ID，在控制台添加应用后生成的实际SDKAppID
-  sdkAppId: string;
-  // 签名内容，使用UTF-8编码，必须填写已审核通过的签名
-  signName: string;
-  // 模板ID，必须填写已审核通过的模板ID
-  templateId: string;
-  // 地域参数，用来标识希望操作哪个地域的数据
-  region: string;
-}
-
-export interface SmsData {
-  requestId?: string;
-  error?: any;
-}
 
 @Injectable()
 export class TencentSmsService {
@@ -38,15 +19,15 @@ export class TencentSmsService {
     private configService: ConfigService,
     private readonly loggingService: LoggingService,
   ) {
-    this.smsConfig = this._getSmsConfig();
-    this._initSmsClient();
+    this.smsConfig = this.getSmsConfig();
+    this.initSmsClient();
   }
 
   /**
    * 获取短信配置
    * @throws InternalServerErrorException 当配置缺失时抛出异常
    */
-  private _getSmsConfig(): TencentSmsConfig {
+  private getSmsConfig(): TencentSmsConfig {
     const requiredConfigs = [
       'TENCENT_SECRET_ID',
       'TENCENT_SECRET_KEY',
@@ -82,7 +63,7 @@ export class TencentSmsService {
   /**
    * 初始化腾讯云短信客户端
    */
-  private _initSmsClient(): void {
+  private initSmsClient(): void {
     try {
       // 实例化一个认证对象
       const clientConfig = {

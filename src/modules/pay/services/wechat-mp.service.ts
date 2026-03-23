@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { PAY_CONSTANTS } from '../constants';
 
 /**
  * 微信小程序服务
@@ -27,7 +28,8 @@ export class WechatMPService {
    */
   async getOpenIdByCode(code: string): Promise<string> {
     try {
-      const url = 'https://api.weixin.qq.com/sns/jscode2session';
+      const url =
+        PAY_CONSTANTS.WX_API_CONFIG.API_DOMAIN + PAY_CONSTANTS.WX_API.MP_JSCODE2SESSION;
 
       const params = {
         grant_type: 'authorization_code',

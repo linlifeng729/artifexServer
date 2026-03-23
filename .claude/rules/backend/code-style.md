@@ -376,6 +376,78 @@ throw new BadRequestException('参数错误')
 throw new InternalServerErrorException('服务异常', { cause: error })
 ```
 
+### 7.3 注释规范
+
+所有 Service、工具类等公共方法必须使用 **JSDoc 风格注释**，包含以下要素：
+
+#### 必填要素
+
+| 标签 | 说明 | 示例 |
+|------|------|------|
+| `@description` | 方法功能描述 | `@description 生成指定长度的唯一随机字符串` |
+| `@param` | 参数说明（包含类型） | `@param {number} length 字符串长度` |
+| `@returns` | 返回值说明 | `@returns {string} 生成的唯一随机字符串` |
+| `@example` | 使用示例（可选但推荐） | `@example ICrypto.generateRandomString(16)` |
+
+#### 注释模板
+
+```typescript
+/**
+ * @description 方法功能描述
+ * @param {参数类型} paramName 参数说明
+ * @param {参数类型} [optionalParam] 可选参数说明（带默认值）
+ * @returns {返回值类型} 返回值说明
+ * @example
+ * const result = ClassName.methodName(arg1, arg2)
+ */
+async methodName(paramName: ParamType, optionalParam: ParamType = defaultValue): Promise<ReturnType> {
+  // implementation
+}
+```
+
+#### 完整示例
+
+```typescript
+/**
+ * 用户服务
+ * 负责用户数据的增删改查操作
+ */
+@Injectable()
+export class UserService {
+  /**
+   * @description 根据ID查找用户
+   * @param {string} id 用户UUID
+   * @returns {Promise<ApiResponse<PublicUser | null>>} 用户信息响应
+   */
+  async getUserById(id: string): Promise<ApiResponse<PublicUser | null>> {
+    // implementation
+  }
+
+  /**
+   * @description 获取用户列表（分页）
+   * @param {number} page 页码，默认1
+   * @param {number} limit 每页数量，默认10
+   * @returns {Promise<ApiResponse<UserPaginatedResult>>} 分页用户列表
+   * @example
+   * const result = await userService.getUserList(1, 10)
+   */
+  async getUserList(
+    page: number = USER_CONSTANTS.PAGINATION.DEFAULT_PAGE,
+    limit: number = USER_CONSTANTS.PAGINATION.DEFAULT_LIMIT
+  ): Promise<ApiResponse<UserPaginatedResult>> {
+    // implementation
+  }
+}
+```
+
+#### 注意事项
+
+- `@param` 参数名必须与方法签名一致
+- 可选参数使用 `[paramName]` 标记，或在说明中标注"可选"
+- 带默认值的参数应说明默认值
+- `@example` 中的示例代码应可直接运行
+- 类前也需要添加 JSDoc 注释说明类的用途
+
 ---
 
 ## 八、Controller 规范
