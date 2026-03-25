@@ -13,11 +13,17 @@ else
   exit 1
 fi
 
-# 加载环境变量
-source "${ENV_FILE}"
-
 # 导出所有环境变量，确保 PM2 子进程能读取
-export $(grep -v '^#' "${ENV_FILE}" | grep -v '^$' | xargs) 2>/dev/null
+# 使用 sed 只处理行尾的 \r（CRLF -> LF），避免误删变量值中的合法字符
+while IFS= read -r line || [[ -n "$line" ]]; do
+  # 跳过注释行和空行
+  [[ "$line" =~ ^[[:space:]]*# ]] && continue
+  [[ -z "${line// }" ]] && continue
+  # 移除行尾的 \r 并导出
+  key=$(echo "$line" | sed 's/\r$//' | cut -d'=' -f1)
+  value=$(echo "$line" | sed 's/\r$//' | sed 's/^[^=]*=//')
+  export "$key=$value" 2>/dev/null
+done < "${ENV_FILE}"
 
 # 如果${REPO_URL}为空 不安装依赖
 if [ -z "${REPO_URL}" ]; then
