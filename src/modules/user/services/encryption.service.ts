@@ -1,7 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
-import { USER_CONSTANTS } from '@/modules/user/constants';
 
 /**
  * 加密服务
@@ -16,15 +15,29 @@ export class EncryptionService {
   private readonly iv: Buffer;
 
   constructor(private readonly configService: ConfigService) {
-    // 从配置服务获取加密密钥，必须在环境变量中配置
-    const encryptionKey = this.configService.get<string>(
+    const requiredConfigs = [
       'PHONE_ENCRYPTION_KEY',
-    );
-    this.encryptionKey = Buffer.from(encryptionKey!, 'hex');
+      'PHONE_ENCRYPTION_IV',
+    ];
 
-    // 从配置服务获取初始化向量，必须在环境变量中配置
-    const iv = this.configService.get<string>('PHONE_ENCRYPTION_IV');
-    this.iv = Buffer.from(iv!, 'hex');
+    const missingConfigs = requiredConfigs.filter(
+      (key) => !this.configService.get<string>(key),
+    );
+
+    if (missingConfigs.length > 0) {
+      throw new InternalServerErrorException(
+        `[加密服务] 配置缺失: ${missingConfigs.join(', ')}，请检查环境变量是否已配置`,
+      );
+    }
+
+    this.encryptionKey = Buffer.from(
+      this.configService.get<string>('PHONE_ENCRYPTION_KEY')!,
+      'hex',
+    );
+    this.iv = Buffer.from(
+      this.configService.get<string>('PHONE_ENCRYPTION_IV')!,
+      'hex',
+    );
   }
 
   /**
