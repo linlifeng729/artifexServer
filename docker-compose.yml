@@ -1,0 +1,23 @@
+services:
+  dkArtifexServer-node:
+    image: node:${VERSION}
+    container_name: ${CONTAINER_NAME}
+    restart: on-failure:5
+    working_dir: /app
+    volumes:
+      - ${SITE_PATH}:/app
+      - ./run.sh:/run.sh
+      - ./.env:/.env
+    environment:
+      - COMMAND=npm run start:pm2:runtime
+    command: bash /run.sh
+    ports:
+      - 127.0.0.1:12600:12600/tcp
+    labels:
+      createdBy: "bt_apps"
+    networks:
+      - baota_net
+
+networks:
+  baota_net:
+    external: true
