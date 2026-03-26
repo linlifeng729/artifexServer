@@ -47,13 +47,21 @@ export class LoggingInterceptor implements NestInterceptor {
       catchError((error) => {
         // 记录错误响应
         const responseTime = Date.now() - startTime;
+        const rawResponse = error.response;
+        const responseBody =
+          rawResponse !== null &&
+          typeof rawResponse === 'object' &&
+          !Array.isArray(rawResponse)
+            ? rawResponse
+            : undefined;
+
         this.loggingService.logError(
           request,
           response,
           responseTime,
           error,
           requestId,
-          error.response || error.data,
+          responseBody,
         );
         throw error;
       }),
