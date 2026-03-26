@@ -262,23 +262,23 @@ export class LoggingService implements LoggerService {
     return sanitized;
   }
 
-  log(message: any, context?: string): void {
-    this.logger.log(message, context);
+  log(message: any): void {
+    this.logger.log(message);
   }
 
-  error(message: any, context?: any): void {
-    this.logger.error(message, context);
+  error(message: any): void {
+    this.logger.error(message);
   }
 
-  warn(message: any, context?: any): void {
-    this.logger.warn(message, context);
+  warn(message: any): void {
+    this.logger.warn(message);
   }
 
-  debug(message: any, context?: any): void {
-    this.logger.debug(message, context);
+  debug(message: any): void {
+    this.logger.debug(message);
   }
 
-  verbose(message: any, context?: any): void {
-    this.logger.verbose(message, context);
+  verbose(message: any): void {
+    this.logger.verbose(message);
   }
 }

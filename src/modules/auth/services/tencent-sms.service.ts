@@ -44,8 +44,7 @@ export class TencentSmsService {
 
     if (missingConfigs.length > 0) {
       this.loggingService.error(
-        '腾讯云短信配置缺失: ',
-        missingConfigs.join(','),
+        `[腾讯云短信配置缺失] 配置缺失: ${missingConfigs.join(', ')}`,
       );
       throw new InternalServerErrorException('短信服务配置不完整');
     }
@@ -82,7 +81,9 @@ export class TencentSmsService {
       this.smsClient = new SmsClient(clientConfig);
       this.loggingService.log('腾讯云短信客户端初始化成功');
     } catch (error) {
-      this.loggingService.error('腾讯云短信客户端初始化失败:', error);
+      this.loggingService.error(
+        `腾讯云短信客户端初始化失败: ${error instanceof Error ? error.message : String(error)}`,
+      );
       throw new Error('短信服务初始化失败');
     }
   }
@@ -136,8 +137,7 @@ export class TencentSmsService {
           );
         } else {
           this.loggingService.error(
-            `短信发送失败 Code: ${sendStatus.Code}, Message: ${sendStatus.Message}`,
-            response.RequestId,
+            `短信发送失败 Code: ${sendStatus.Code}, Message: ${sendStatus.Message}, RequestId: ${response.RequestId}`,
           );
           return ResponseHelper.error(`短信发送失败: ${sendStatus.Message}`, {
             requestId: response.RequestId,
@@ -145,13 +145,17 @@ export class TencentSmsService {
           });
         }
       } else {
-        this.loggingService.error('短信发送响应格式异常', response.RequestId);
+        this.loggingService.error(
+          `短信发送响应格式异常, RequestId: ${response.RequestId}`,
+        );
         return ResponseHelper.error('短信发送响应格式异常', {
           requestId: response.RequestId,
         });
       }
     } catch (error) {
-      this.loggingService.error('短信发送异常:', error);
+      this.loggingService.error(
+        `短信发送异常: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return ResponseHelper.error('短信发送异常，请稍后重试', { error });
     }
   }
