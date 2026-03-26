@@ -60,12 +60,7 @@ export class CreatePayOrderDto {
     description: '微信用户 openid（公众号/小程序支付必填）',
   })
   @ValidateIf(
-    (o) =>
-      !o.payChannel ||
-      [
-        PAY_CONSTANTS.CHANNEL.WECHAT_MP,
-        PAY_CONSTANTS.CHANNEL.WECHAT_OA,
-      ].includes(o.payChannel),
+    (o) => !o.payChannel || [PAY_CONSTANTS.CHANNEL.WECHAT_OA].includes(o.payChannel)
   )
   @IsNotEmpty({ message: 'OpenId不能为空' })
   @IsString({ message: 'OpenId必须是字符串' })
