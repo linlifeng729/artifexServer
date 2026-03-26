@@ -12,7 +12,6 @@ export type {
 
 export type {
   WechatJsapiPayParams,
-  WechatJsapiPayRequestParams,
   WechatPayNotifyData,
   WechatOAConfig,
   WechatOAOpenIdResult,

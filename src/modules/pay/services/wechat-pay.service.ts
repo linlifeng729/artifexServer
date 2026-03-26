@@ -93,7 +93,7 @@ export class WechatPayService {
    */
   private async generateJsapiSignature(
     appId: string,
-    timestamp: number,
+    timestamp: string,
     nonceStr: string,
     packageId: string,
   ): Promise<string> {
@@ -304,9 +304,9 @@ export class WechatPayService {
     appId: string,
     prepayId: string,
     callbackUrl?: string,
-  ): Promise<WechatJsapiPayParams & { appId: string }> {
+  ): Promise<WechatJsapiPayParams> {
     const nonceStr = ICrypto.generateRandomString(32);
-    const timestamp = Math.floor(Date.now() / 1000);
+    const timestamp = `${Math.floor(Date.now() / 1000)}`;
     const packageId = `prepay_id=${prepayId}`;
     const paySign = await this.generateJsapiSignature(
       appId,
@@ -322,7 +322,6 @@ export class WechatPayService {
       signType: 'RSA',
       paySign,
       callbackUrl,
-      appId,
     };
   }
 

@@ -11,7 +11,7 @@ import type { TradeState } from '@/modules/pay/constants';
  */
 export interface WechatJsapiPayParams {
   nonceStr: string;
-  timestamp: number;
+  timestamp: string;
   package: string;
   signType: string;
   paySign: string;
@@ -26,13 +26,6 @@ export interface WechatPayNotifyData {
   transaction_id: string;
   trade_state: TradeState;
   success_time: string;
-}
-
-/**
- * 微信 JSAPI 支付调起参数（客户端使用）
- */
-export interface WechatJsapiPayRequestParams extends WechatJsapiPayParams {
-  appId: string;
 }
 
 /* ==================== 微信公众号/小程序相关类型 ==================== */
