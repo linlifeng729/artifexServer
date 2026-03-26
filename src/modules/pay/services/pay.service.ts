@@ -7,7 +7,7 @@ import { AlipayService } from './alipay.service';
 import { WechatPayService } from './wechat-pay.service';
 import { ICrypto } from '@/common/utils/crypto';
 import { LoggingService } from '@/common/services/logging.service';
-import { DistributedLockService } from '@/common/services/distributed-lock.service';
+import { RedisLockService } from '@/common/services/redis-lock.service';
 import { PAY_CONSTANTS } from '@/modules/pay/constants';
 
 @Injectable()
@@ -18,7 +18,7 @@ export class PayService {
     private readonly alipayService: AlipayService,
     private readonly wechatPayService: WechatPayService,
     private readonly loggingService: LoggingService,
-    private readonly distributedLockService: DistributedLockService,
+    private readonly distributedLockService: RedisLockService,
   ) {}
 
   /**

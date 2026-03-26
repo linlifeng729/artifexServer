@@ -7,7 +7,7 @@ import { AlipaySdk } from 'alipay-sdk';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityManager } from 'typeorm';
 import { LoggingService } from '@/common/services/logging.service';
-import { DistributedLockService } from '@/common/services/distributed-lock.service';
+import { RedisLockService } from '@/common/services/redis-lock.service';
 import { PayOrder } from '@/modules/pay/entities/pay-order.entity';
 import { PayDelivery } from '@/modules/pay/entities/pay-delivery.entity';
 import { PAY_CONSTANTS } from '@/modules/pay/constants';
@@ -29,7 +29,7 @@ export class AlipayService {
   constructor(
     private readonly configService: ConfigService,
     private readonly loggingService: LoggingService,
-    private readonly distributedLockService: DistributedLockService,
+    private readonly distributedLockService: RedisLockService,
     private readonly dataSource: DataSource,
   ) {
     const config = this.getAlipayConfig();

@@ -370,19 +370,19 @@ src/
 
 #### 1. 使用分布式锁
 
-使用 `DistributedLockService` 确保同一操作在分布式环境下只执行一次：
+使用 `RedisLockService` 确保同一操作在分布式环境下只执行一次：
 
 ```typescript
-import { DistributedLockService } from '@/common/services/distributed-lock.service';
+import { RedisLockService } from '@/common/services/redis-lock.service';
 
 constructor(
-  private readonly distributedLockService: DistributedLockService,
+  private readonly redisLockService: RedisLockService,
 ) {}
 
 // 订单创建场景
 async createOrder(userId: number, dto: CreateOrderDto) {
   const lockKey = `order:create:${userId}:${dto.goodsId}`;
-  return await this.distributedLockService.withLock(lockKey, async () => {
+  return await this.redisLockService.withLock(lockKey, async () => {
     // 业务逻辑
     return await this.processOrder(userId, dto);
   }, 60000); // 60秒超时
@@ -391,7 +391,7 @@ async createOrder(userId: number, dto: CreateOrderDto) {
 // 支付回调场景
 async handleNotify(params: any) {
   const lockKey = `order:notify:${params.outTradeNo}`;
-  return await this.distributedLockService.withLock(lockKey, async () => {
+  return await this.redisLockService.withLock(lockKey, async () => {
     // 回调处理逻辑
     return await this.processCallback(params);
   }, 30000); // 30秒超时
@@ -454,7 +454,7 @@ const order = await queryRunner.manager.findOne(Order, {
 async handlePaymentCallback(params: PaymentCallbackParams) {
   const lockKey = `pay:notify:${params.outTradeNo}`;
 
-  return await this.distributedLockService.withLock(lockKey, async () => {
+  return await this.redisLockService.withLock(lockKey, async () => {
     // 检查订单是否已处理
     const existingOrder = await this.orderRepository.findOne({
       where: { outTradeNo: params.outTradeNo },
@@ -484,7 +484,7 @@ async createOrder(dto: CreateOrderDto) {
   const outTradeNo = ICrypto.generateRandomString(32);
   const lockKey = `order:create:${outTradeNo}`;
 
-  return await this.distributedLockService.withLock(lockKey, async () => {
+  return await this.redisLockService.withLock(lockKey, async () => {
     // 检查是否已存在
     const existing = await this.orderRepository.findOne({ where: { outTradeNo } });
     if (existing) {
@@ -496,20 +496,6 @@ async createOrder(dto: CreateOrderDto) {
     return await this.orderRepository.save(order);
   }, 60000);
 }
-```
-
-#### 3. 分布式锁表 SQL
-
-```sql
--- 分布式锁表
-CREATE TABLE `distributed_locks` (
-  `lock_key` VARCHAR(255) NOT NULL COMMENT '锁的键',
-  `owner_id` VARCHAR(255) NOT NULL COMMENT '锁持有者ID',
-  `expire_at` TIMESTAMP NOT NULL COMMENT '过期时间',
-  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  PRIMARY KEY (`lock_key`),
-  INDEX `idx_expire_at` (`expire_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分布式锁记录表';
 ```
 
 ### 日志规范

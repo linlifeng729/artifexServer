@@ -10,7 +10,6 @@ import { WechatPayService } from '@/modules/pay/services/wechat-pay.service';
 import { WechatMPService } from '@/modules/pay/services/wechat-mp.service';
 import { WechatOAService } from '@/modules/pay/services/wechat-oa.service';
 import { LoggingService } from '@/common/services/logging.service';
-import { DistributedLockService } from '@/common/services/distributed-lock.service';
 import { AuthModule } from '@/modules/auth/auth.module';
 
 /**
@@ -31,7 +30,6 @@ import { AuthModule } from '@/modules/auth/auth.module';
     WechatMPService,
     WechatOAService,
     LoggingService,
-    DistributedLockService,
   ],
   exports: [
     PayService,

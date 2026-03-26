@@ -88,7 +88,7 @@ src/modules/[module-name]/
 ### DTO Validation
 
 - Use class-validator decorators for all DTO properties
-- Include meaningful error messages in Vietnamese
+- Include meaningful error messages in Chinese
 - Use appropriate validation decorators:
   - `@IsString()`, `@IsNumber()`, `@IsBoolean()`
   - `@IsNotEmpty()`, `@IsOptional()`
@@ -209,10 +209,8 @@ See the detailed rules in:
 
 - `.claude/rules/backend/code-style.md` - Complete NestJS backend guidelines
 - `.claude/rules/other/api.md` - API integration specifications
-- `.claude/rules/other/security.md` - Security guidelines
-- `.claude/rules/other/testing.md` - Testing standards
 
-When creating new modules, follow the 5-step process outlined in the backend code-style guide:
+When creating new modules, follow the 6-step process outlined in the backend code-style guide:
 
 1. Create constants
 2. Create DTOs
