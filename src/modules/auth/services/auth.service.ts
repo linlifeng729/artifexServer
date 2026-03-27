@@ -261,14 +261,23 @@ export class AuthService {
         const isValid = await bcrypt.compare(code, user.verificationCodeHash);
 
         if (!isValid) {
-          // 仅累加错误次数，不清除验证码
-          // 这样攻击者无法通过"验证码置零攻击"使真实验证码失效
-          await manager.update(User, user.userId, {
-            verificationCodeAttempts: currentAttempts + 1,
-          });
+          // 使用 SQL 原子递增，防止并发竞态导致计数丢失
+          // 即使多个请求同时到达，DB 层也会正确累加到真实猜测次数
+          const updated = await manager
+            .createQueryBuilder()
+            .update(User)
+            .set({ verificationCodeAttempts: () => 'verificationCodeAttempts + 1' })
+            .where('userId = :userId', { userId: user.userId })
+            .andWhere('verificationCodeAttempts < :maxAttempts', { maxAttempts })
+            .execute();
 
-          // 计算剩余尝试次数
-          const remainingAttempts = maxAttempts - currentAttempts - 1;
+          // 若更新行数为0，说明已达到上限（已被另一事务更新）
+          if (updated.affected === 0) {
+            return ResponseHelper.error('验证码尝试次数过多，请重新获取', null);
+          }
+
+          // 从 updated 值反推剩余次数（updated.affected=1 表示本次 +1 后仍在限制内）
+          const remainingAttempts = maxAttempts - (user.verificationCodeAttempts || AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS) - 1;
 
           // 接近锁定阈值时给出明确提示，但不暴露具体错误原因
           if (remainingAttempts > 0 && remainingAttempts <= 2) {
@@ -380,9 +389,7 @@ export class AuthService {
       // 检查极验业务结果
       const geetestResult = response.data as GeetestValidateResponse;
       if (geetestResult.result !== 'success') {
-        this.loggingService.warn(
-          `[极验验证失败] phone=${this.maskPhoneNumber(captchaData.phone)}, result=${geetestResult.result ?? '未知'}`,
-        );
+        this.loggingService.warn('[极验验证] 滑块验证失败，请客户端重试');
         throw new BadRequestException('滑块验证失败，请重试');
       }
     } catch (error) {
