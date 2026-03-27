@@ -10,9 +10,10 @@ export type PublicUser = Omit<
   User,
   | 'userId'
   | 'phoneHash'
-  | 'verificationCode'
+  | 'verificationCodeHash'
   | 'verificationCodeExpiredAt'
   | 'lastCodeSentAt'
+  | 'verificationCodeAttempts'
 >;
 
 /**
@@ -20,7 +21,10 @@ export type PublicUser = Omit<
  */
 export type InternalUser = Omit<
   User,
-  'verificationCode' | 'verificationCodeExpiredAt' | 'lastCodeSentAt'
+  | 'verificationCodeHash'
+  | 'verificationCodeExpiredAt'
+  | 'lastCodeSentAt'
+  | 'verificationCodeAttempts'
 >;
 
 /**

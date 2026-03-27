@@ -1,5 +1,5 @@
 import { IsString, Matches, IsNotEmpty } from 'class-validator';
-import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
+import { AUTH_CONSTANTS } from '@/modules/auth/constants/index';
 import { ApiProperty } from '@nestjs/swagger';
 
 /**

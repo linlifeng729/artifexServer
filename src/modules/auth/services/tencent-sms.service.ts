@@ -1,19 +1,24 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as tencentcloud from 'tencentcloud-sdk-nodejs';
-import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
+import { AUTH_CONSTANTS } from '@/modules/auth/constants';
 import { LoggingService } from '@/common/services/logging.service';
 import { ApiResponse } from '@/common/interceptors/response.interceptor';
 import { ResponseHelper } from '@/common/utils/response.helper';
-import { TencentSmsConfig, SmsData } from '@/modules/auth/types';
+import {
+  TencentSmsConfig,
+  TencentSendSmsResponse,
+  TencentSmsClient,
+  SmsData,
+} from '@/modules/auth/types';
 
-// 导入对应产品模块的client models
+// 导入对应产品模块的 client models
 const SmsClient = tencentcloud.sms.v20210111.Client;
 
 @Injectable()
 export class TencentSmsService {
   private readonly smsConfig: TencentSmsConfig;
-  private smsClient: any;
+  private smsClient!: TencentSmsClient;
 
   constructor(
     private configService: ConfigService,
@@ -37,7 +42,6 @@ export class TencentSmsService {
       'TENCENT_SMS_REGION',
     ];
 
-    // 检查所有必需的配置是否存在
     const missingConfigs = requiredConfigs.filter(
       (key) => !this.configService.get<string>(key),
     );
@@ -64,7 +68,6 @@ export class TencentSmsService {
    */
   private initSmsClient(): void {
     try {
-      // 实例化一个认证对象
       const clientConfig = {
         credential: {
           secretId: this.smsConfig.secretId,
@@ -99,34 +102,28 @@ export class TencentSmsService {
     code: string,
   ): Promise<ApiResponse<SmsData>> {
     try {
-      // 确保手机号包含国际区号
       const formattedPhone = phone.startsWith('+')
         ? phone
         : `${AUTH_CONSTANTS.PHONE.INTERNATIONAL_PREFIX}${phone}`;
 
       const params = {
-        // 短信应用ID
         SmsSdkAppId: this.smsConfig.sdkAppId,
-        // 短信签名内容
         SignName: this.smsConfig.signName,
-        // 模板ID
         TemplateId: this.smsConfig.templateId,
-        // 下发手机号码，采用E.164标准，+[国家或地区码][手机号]
         PhoneNumberSet: [formattedPhone],
-        // 模板参数：[验证码, 有效期分钟数]
         TemplateParamSet: [
           code,
           AUTH_CONSTANTS.SMS.TEMPLATE_PARAMS.EXPIRATION_MINUTES,
         ],
       };
 
-      const response = await this.smsClient.SendSms(params);
+      const response: TencentSendSmsResponse =
+        await this.smsClient.SendSms(params);
 
       this.loggingService.log(
-        `腾讯云短信发送响应: ${JSON.stringify(response)}`,
+        `[腾讯云短信] 发送完成 - RequestId: ${response.RequestId ?? '-'}, 状态: ${response.SendStatusSet?.[0]?.Code ?? '未知'}`,
       );
 
-      // 检查发送结果
       if (response.SendStatusSet && response.SendStatusSet.length > 0) {
         const sendStatus = response.SendStatusSet[0];
 
@@ -137,26 +134,25 @@ export class TencentSmsService {
           );
         } else {
           this.loggingService.error(
-            `短信发送失败 Code: ${sendStatus.Code}, Message: ${sendStatus.Message}, RequestId: ${response.RequestId}`,
+            `[腾讯云短信发送失败] Code: ${sendStatus.Code ?? '-'}, Message: ${sendStatus.Message ?? '-'}, RequestId: ${response.RequestId ?? '-'}`,
           );
-          return ResponseHelper.error(`短信发送失败: ${sendStatus.Message}`, {
-            requestId: response.RequestId,
-            error: sendStatus,
-          });
+          return ResponseHelper.error(
+            `短信发送失败: ${sendStatus.Code ?? '未知错误'}`,
+            { requestId: response.RequestId },
+          );
         }
       } else {
         this.loggingService.error(
-          `短信发送响应格式异常, RequestId: ${response.RequestId}`,
+          `[腾讯云短信响应格式异常] RequestId: ${response.RequestId ?? '-'}`,
         );
         return ResponseHelper.error('短信发送响应格式异常', {
           requestId: response.RequestId,
         });
       }
     } catch (error) {
-      this.loggingService.error(
-        `短信发送异常: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      return ResponseHelper.error('短信发送异常，请稍后重试', { error });
+      const errMsg = error instanceof Error ? error.message : String(error);
+      this.loggingService.error(`[腾讯云短信异常] ${errMsg}`);
+      return ResponseHelper.error('短信发送异常，请稍后重试');
     }
   }
 }

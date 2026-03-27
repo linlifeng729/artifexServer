@@ -54,6 +54,10 @@ export const USER_CONSTANTS = {
       'isActive',
       'createdAt',
       'updatedAt',
+      'verificationCodeHash',
+      'verificationCodeExpiredAt',
+      'lastCodeSentAt',
+      'verificationCodeAttempts',
     ] as (keyof import('@/modules/user/entities/user.entity').User)[],
   },
 

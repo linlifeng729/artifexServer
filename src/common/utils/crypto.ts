@@ -47,6 +47,28 @@ export class ICrypto {
   }
 
   /**
+   * @description 生成指定长度的加密安全随机整数（不足长度自动补0）
+   * @param {number} length 生成数字的总位数
+   * @returns {string} 指定长度的数字字符串（可能带前导0）
+   */
+  static generateRandomIntByLength(length: number): string {
+    const max = Math.pow(10, length) - 1;
+    const range = max + 1;
+    const bytesNeeded = Math.ceil(Math.log2(range) / 8);
+    const mask = (1 << (bytesNeeded * 8)) - 1;
+    let result: number;
+    do {
+      result =
+        Number(
+          BigInt(
+            '0x' + crypto.randomBytes(bytesNeeded).toString('hex'),
+          ) & BigInt(mask),
+        );
+    } while (result >= range);
+    return (result).toString().padStart(length, '0');
+  }
+
+  /**
    * @description 生成UUID v4
    * @returns {string} UUID字符串
    */

@@ -106,13 +106,11 @@ export class LoggingService implements LoggerService {
       ip: request.ip || 'unknown',
       userAgent: request.headers['user-agent'],
       query:
-        this.config.logQueryParams &&
-        this.isSerializableObject(request.query)
+        this.config.logQueryParams && this.isSerializableObject(request.query)
           ? request.query
           : undefined,
       body:
-        this.config.logRequestBody &&
-        this.isSerializableObject(request.body)
+        this.config.logRequestBody && this.isSerializableObject(request.body)
           ? this.sanitizeBody(request.body)
           : undefined,
       headers: this.config.logRequestHeaders
@@ -139,7 +137,9 @@ export class LoggingService implements LoggerService {
       parts.push(`请求头=${JSON.stringify(logInfo.headers)}`);
     }
 
-    this.logger.log(`[请求开始] ${request.method} ${request.url} - IP地址: ${logInfo.ip} | ${parts.join(' ')}`);
+    this.logger.log(
+      `[请求开始] ${request.method} ${request.url} - IP地址: ${logInfo.ip} | ${parts.join(' ')}`,
+    );
   }
 
   /**
@@ -158,23 +158,30 @@ export class LoggingService implements LoggerService {
       statusCode: response.statusCode,
       responseTime,
       responseBody:
-        this.config.logResponseBody &&
-        this.isSerializableObject(responseBody)
+        this.config.logResponseBody && this.isSerializableObject(responseBody)
           ? this.sanitizeBody(responseBody)
           : undefined,
       timestamp: new Date().toISOString(),
       requestId: requestId,
     };
 
-    const parts = [`状态码=${response.statusCode}`, `耗时=${responseTime}ms`, `请求ID=${requestId || '-'}`];
+    const parts = [
+      `状态码=${response.statusCode}`,
+      `耗时=${responseTime}ms`,
+      `请求ID=${requestId || '-'}`,
+    ];
     if (logInfo.responseBody) {
       parts.push(`响应体=${JSON.stringify(logInfo.responseBody)}`);
     }
 
     if (responseTime > this.config.performanceThreshold) {
-      this.logger.warn(`[慢请求警告] ${request.method} ${request.url} | ${parts.join(' ')}`);
+      this.logger.warn(
+        `[慢请求警告] ${request.method} ${request.url} | ${parts.join(' ')}`,
+      );
     } else {
-      this.logger.log(`[请求完成] ${request.method} ${request.url} | ${parts.join(' ')}`);
+      this.logger.log(
+        `[请求完成] ${request.method} ${request.url} | ${parts.join(' ')}`,
+      );
     }
   }
 
@@ -182,11 +189,7 @@ export class LoggingService implements LoggerService {
    * 判断值是否为合法的可序列化对象（非 null、非数组、非原始类型）
    */
   private isSerializableObject(value: any): boolean {
-    return (
-      value !== null &&
-      typeof value === 'object' &&
-      !Array.isArray(value)
-    );
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
 
   /**
@@ -219,9 +222,10 @@ export class LoggingService implements LoggerService {
     }
 
     // error.message 可能为空或为对象（NestJS 某些异常会传对象）
-    const errorMsg = typeof error.message === 'string' && error.message
-      ? error.message
-      : error.name || 'Unknown Error';
+    const errorMsg =
+      typeof error.message === 'string' && error.message
+        ? error.message
+        : error.name || 'Unknown Error';
 
     this.logger.error(
       `[请求错误] ${request.method} ${request.url} | ${parts.join(' ')} | 异常类型=${error.name} 错误信息=${errorMsg}`,

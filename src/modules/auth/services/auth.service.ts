@@ -7,9 +7,9 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { randomUUID } from 'crypto';
-import { HttpService } from '@nestjs/axios';
 import { ICrypto } from '@/common/utils/crypto';
+import * as bcrypt from 'bcrypt';
+import { HttpService } from '@nestjs/axios';
 import { HASH_ALGORITHMS, ENCODINGS } from '@/common/types/crypto';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { SendVerificationCodeDto } from '@/modules/auth/dto/send-verificationcode.dto';
@@ -19,7 +19,15 @@ import { EncryptionService } from '@/modules/user/services/encryption.service';
 import { TencentSmsService } from './tencent-sms.service';
 import { ApiResponse } from '@/common/interceptors/response.interceptor';
 import { ResponseHelper } from '@/common/utils/response.helper';
-import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
+import { AUTH_CONSTANTS } from '@/modules/auth/constants';
+import { USER_CONSTANTS } from '@/modules/user/constants';
+import {
+  JwtPayload,
+  VerifyCodeSuccessData,
+  GeetestValidateResponse,
+} from '@/modules/auth/types';
+import { RedisLockService } from '@/common/services/redis-lock.service';
+import { LoggingService } from '@/common/services/logging.service';
 
 @Injectable()
 export class AuthService {
@@ -33,6 +41,8 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     private readonly dataSource: DataSource,
     private readonly encryptionService: EncryptionService,
+    private readonly redisLockService: RedisLockService,
+    private readonly loggingService: LoggingService,
   ) {}
 
   /**
@@ -41,10 +51,10 @@ export class AuthService {
    */
   async userLogin(
     loginDto: LoginDto,
-  ): Promise<ApiResponse<{ user: any; token: string }>> {
+  ): Promise<ApiResponse<{ user: VerifyCodeSuccessData; token: string }>> {
     const { phone, verificationCode: inputCode } = loginDto;
 
-    // 验证验证码
+    // 验证验证码（bcrypt 哈希比对 + 事务）
     const verifyResult = await this.verifyCode(phone, inputCode);
 
     if (!verifyResult.success || !verifyResult.data) {
@@ -55,26 +65,21 @@ export class AuthService {
 
     const user = verifyResult.data;
 
-    // 根据用户角色设置token有效期
+    // 根据用户角色设置 token 有效期
     const expiresIn =
-      user.role === AUTH_CONSTANTS.ROLES.ADMIN
+      user.role === USER_CONSTANTS.ROLES.ADMIN
         ? AUTH_CONSTANTS.JWT.ADMIN_EXPIRATION
         : AUTH_CONSTANTS.JWT.USER_EXPIRATION;
 
-    // 生成JWT token
-    const payload = { sub: user.id, phone: user.phone };
+    // 生成 JWT token（payload 包含 role，减少后续鉴权查询）
+    const payload: JwtPayload = {
+      sub: user.id,
+      phone: user.phone,
+      role: user.role,
+    };
     const token = await this.jwtService.signAsync(payload, { expiresIn });
 
-    // 返回不包含敏感字段的用户信息（排除 userId、phoneHash 等内部字段）
-    const { userId, phoneHash, ...result } = user;
-
-    return ResponseHelper.success(
-      {
-        user: result,
-        token,
-      },
-      '登录成功',
-    );
+    return ResponseHelper.success({ user, token }, '登录成功');
   }
 
   /**
@@ -84,100 +89,98 @@ export class AuthService {
   async sendSmsCode(
     sendCodeDto: SendVerificationCodeDto,
   ): Promise<ApiResponse<boolean>> {
-    try {
-      // 校验滑块验证码
-      await this.validateGeetestCaptcha(sendCodeDto);
+    const lockKey = `sms:send:${sendCodeDto.phone}`;
 
-      // 查找或创建用户记录
-      const phoneHash = this.encryptionService.hashPhone(sendCodeDto.phone);
-      let user = await this.userRepository.findOne({ where: { phoneHash } });
+    return await this.redisLockService.withLock(
+      lockKey,
+      async () => {
+        try {
+          // 校验滑块验证码
+          await this.validateGeetestCaptcha(sendCodeDto);
 
-      // 检查发送频率限制
-      if (user?.lastCodeSentAt) {
-        const intervalMs =
-          AUTH_CONSTANTS.VERIFICATION_CODE.SEND_INTERVAL_SECONDS * 1000;
-        const timeDiff = Date.now() - user.lastCodeSentAt.getTime();
-        if (timeDiff < intervalMs) {
-          const remainingTime = Math.ceil((intervalMs - timeDiff) / 1000);
-          const message = `请等待${remainingTime}秒后再重新发送验证码`;
-          throw new BadRequestException(message);
-        }
-      }
+          // 查找或创建用户记录
+          const phoneHash = this.encryptionService.hashPhone(sendCodeDto.phone);
+          let user = await this.userRepository.findOne({
+            where: { phoneHash },
+            select: ['userId', 'phoneHash', 'lastCodeSentAt', 'isActive'],
+          });
 
-      // 生成验证码和过期时间
-      const verificationCode = this._generateVerificationCode();
-      const expirationMs =
-        AUTH_CONSTANTS.VERIFICATION_CODE.EXPIRATION_MINUTES * 60 * 1000;
-      const expiredAt = new Date(Date.now() + expirationMs);
-      const now = new Date();
+          // 检查发送频率限制
+          if (user?.lastCodeSentAt) {
+            const intervalMs =
+              AUTH_CONSTANTS.VERIFICATION_CODE.SEND_INTERVAL_SECONDS * 1000;
+            const timeDiff = Date.now() - user.lastCodeSentAt.getTime();
+            if (timeDiff < intervalMs) {
+              const remainingTime = Math.ceil((intervalMs - timeDiff) / 1000);
+              const message = `请等待${remainingTime}秒后再重新发送验证码`;
+              throw new BadRequestException(message);
+            }
+          }
 
-      if (user) {
-        // 更新现有用户的验证码
-        await this.userRepository.update(user.userId, {
-          verificationCode,
-          verificationCodeExpiredAt: expiredAt,
-          lastCodeSentAt: now,
-        });
-      } else {
-        // 创建新用户记录（用于验证码登录）
-        const encryptedPhone = this.encryptionService.encryptPhone(
-          sendCodeDto.phone,
-        );
+          // 生成验证码和过期时间
+          const verificationCode = ICrypto.generateRandomIntByLength(AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH);
+          const expirationMs = AUTH_CONSTANTS.VERIFICATION_CODE.EXPIRATION_MINUTES * 60 * 1000;
+          const expiredAt = new Date(Date.now() + expirationMs);
+          const now = new Date();
 
-        user = this.userRepository.create({
-          id: randomUUID(),
-          phone: encryptedPhone,
-          nickname: this._maskPhoneNumber(sendCodeDto.phone),
-          phoneHash,
-          verificationCode,
-          verificationCodeExpiredAt: expiredAt,
-          lastCodeSentAt: now,
-        });
-        await this.userRepository.save(user);
-      }
-
-      // 发送短信验证码
-      try {
-        const smsResult = await this.tencentSmsService.sendSmsCode(
-          sendCodeDto.phone,
-          verificationCode,
-        );
-
-        if (!smsResult.success) {
-          throw new InternalServerErrorException(
-            smsResult.message || '验证码发送失败，请稍后重试',
+          // bcrypt 哈希存储验证码
+          const codeHash = await bcrypt.hash(
+            verificationCode,
+            AUTH_CONSTANTS.SECURITY.BCRYPT_SALT_ROUNDS,
           );
-        }
-      } catch (error) {
-        if (
-          error instanceof BadRequestException ||
-          error instanceof InternalServerErrorException
-        ) {
-          throw error;
-        }
-        throw new InternalServerErrorException('验证码发送失败，请稍后重试');
-      }
 
-      return ResponseHelper.success(true, '验证码发送成功');
-    } catch (error) {
-      if (
-        error instanceof BadRequestException ||
-        error instanceof InternalServerErrorException
-      ) {
-        throw error;
-      }
-      throw new InternalServerErrorException('验证码发送失败，请稍后重试');
-    }
-  }
+          if (user) {
+            // 更新现有用户的验证码哈希
+            await this.userRepository.update(user.userId, {
+              verificationCodeHash: codeHash,
+              verificationCodeExpiredAt: expiredAt,
+              lastCodeSentAt: now,
+              verificationCodeAttempts: 0,
+            });
+          } else {
+            // 创建新用户记录（用于验证码登录）
+            const encryptedPhone = this.encryptionService.encryptPhone(
+              sendCodeDto.phone,
+            );
 
-  /**
-   * 生成验证码
-   * @returns 返回指定长度的数字验证码
-   */
-  private _generateVerificationCode(): string {
-    const min = Math.pow(10, AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH - 1);
-    const max = Math.pow(10, AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH) - 1;
-    return Math.floor(min + Math.random() * (max - min + 1)).toString();
+            user = this.userRepository.create({
+              id: ICrypto.generateUUID(),
+              phone: encryptedPhone,
+              nickname: this.maskPhoneNumber(sendCodeDto.phone),
+              phoneHash,
+              verificationCodeHash: codeHash,
+              verificationCodeExpiredAt: expiredAt,
+              lastCodeSentAt: now,
+              verificationCodeAttempts: 0,
+            });
+            await this.userRepository.save(user);
+          }
+
+          // 发送短信验证码
+          const smsResult = await this.tencentSmsService.sendSmsCode(
+            sendCodeDto.phone,
+            verificationCode,
+          );
+
+          if (!smsResult.success) {
+            throw new InternalServerErrorException(
+              '验证码发送失败，请稍后重试',
+            );
+          }
+
+          return ResponseHelper.success(true, '验证码发送成功');
+        } catch (error) {
+          if (
+            error instanceof BadRequestException ||
+            error instanceof InternalServerErrorException
+          ) {
+            throw error;
+          }
+          throw new InternalServerErrorException('验证码发送失败，请稍后重试');
+        }
+      },
+      AUTH_CONSTANTS.SECURITY.SMS_LOCK_TTL_MS,
+    );
   }
 
   /**
@@ -185,7 +188,7 @@ export class AuthService {
    * @param phone 原始手机号
    * @returns 脱敏后的手机号格式 137****1111
    */
-  private _maskPhoneNumber(phone: string): string {
+  private maskPhoneNumber(phone: string): string {
     if (!phone || phone.length < 11) {
       return phone;
     }
@@ -193,18 +196,13 @@ export class AuthService {
   }
 
   /**
-   * 验证验证码（使用事务确保原子性操作）
+   * 验证验证码
+   * 验证码以 bcrypt 哈希存储，验证时使用 bcrypt.compare 进行时序安全比对
    */
   async verifyCode(
     phone: string,
     code: string,
-  ): Promise<
-    ApiResponse<Omit<
-      User,
-      'verificationCode' | 'verificationCodeExpiredAt'
-    > | null>
-  > {
-    // 使用事务确保验证码验证和清除是原子操作
+  ): Promise<ApiResponse<VerifyCodeSuccessData | null>> {
     return await this.dataSource.transaction(async (manager) => {
       try {
         const userPhoneHash = this.encryptionService.hashPhone(phone);
@@ -219,7 +217,7 @@ export class AuthService {
           return ResponseHelper.error('用户不存在', null);
         }
 
-        if (!user.verificationCode) {
+        if (!user.verificationCodeHash) {
           return ResponseHelper.error('请先获取验证码', null);
         }
 
@@ -228,47 +226,60 @@ export class AuthService {
           !user.verificationCodeExpiredAt ||
           user.verificationCodeExpiredAt < new Date()
         ) {
-          // 清除过期的验证码
+          // 清除过期的验证码哈希
           await manager.update(User, user.userId, {
-            verificationCode: () => 'NULL',
-            verificationCodeExpiredAt: () => 'NULL',
+            verificationCodeHash: undefined,
+            verificationCodeExpiredAt: undefined,
           });
           return ResponseHelper.error('验证码已过期，请重新获取', null);
         }
 
-        // 验证验证码
-        if (user.verificationCode !== code) {
+        // bcrypt 时序安全比对验证码
+        const isValid = await bcrypt.compare(code, user.verificationCodeHash);
+
+        if (!isValid) {
+          // 验证码错误，清除哈希（防止暴力枚举）
+          await manager.update(User, user.userId, {
+            verificationCodeHash: undefined,
+            verificationCodeExpiredAt: undefined,
+          });
           return ResponseHelper.error('验证码错误', null);
         }
 
-        // 验证成功，立即清除验证码（在同一事务中）
+        // 验证成功，清除验证码哈希（同一事务中，确保一次性）
         await manager.update(User, user.userId, {
-          verificationCode: () => 'NULL',
-          verificationCodeExpiredAt: () => 'NULL',
+          verificationCodeHash: undefined,
+          verificationCodeExpiredAt: undefined,
         });
 
-        // 返回用户信息（不包含敏感字段）
-        const { verificationCode, verificationCodeExpiredAt, ...result } = user;
+        const userPublicFields: VerifyCodeSuccessData = {
+          id: user.id,
+          phone: user.phone,
+          nickname: user.nickname,
+          role: user.role,
+          isActive: user.isActive,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
 
-        return ResponseHelper.success(result, '验证码验证成功');
-      } catch (error) {
+        return ResponseHelper.success(userPublicFields, '验证码验证成功');
+      } catch {
         return ResponseHelper.error('验证失败，请稍后重试', null);
       }
     });
   }
 
   /**
-   * 验证JWT token并获取用户信息
+   * 验证 JWT token 并获取用户信息
    * @param token JWT token
    * @returns 用户信息
-   * @throws BadRequestException 当token无效时
-   * @throws InternalServerErrorException 当用户信息获取失败时
    */
   async validateToken(token: string) {
     try {
-      const payload = await this.jwtService.verifyAsync(token);
+      const payload = (await this.jwtService.verifyAsync(
+        token,
+      )) as unknown as JwtPayload;
 
-      // 根据 JWT payload 中的用户ID获取完整的用户信息（包含 userId 用于内部业务）
       const user = await this.userService.getUserByIdInternal(payload.sub);
 
       if (!user) {
@@ -294,7 +305,6 @@ export class AuthService {
     const { captcha_id, lot_number, captcha_output, pass_token, gen_time } =
       captchaData;
 
-    // 获取极验配置
     const geetestKey = this.configService.get<string>('GEETEST_LOGIN_KEY');
     const geetestDomain = this.configService.get<string>(
       'GEETEST_LOGIN_DOMAIN',
@@ -313,7 +323,7 @@ export class AuthService {
     );
 
     try {
-      await this.httpService.axiosRef.post(
+      const response = await this.httpService.axiosRef.post(
         `${geetestDomain}${AUTH_CONSTANTS.GEETEST.VALIDATE_PATH}`,
         new URLSearchParams({
           lot_number,
@@ -330,6 +340,15 @@ export class AuthService {
           },
         },
       );
+
+      // 检查极验业务结果，不能仅凭 HTTP 200 放行
+      const geetestResult = response.data as GeetestValidateResponse;
+      if (geetestResult.result !== 'success') {
+        this.loggingService.warn(
+          `[极验验证失败] phone=${this.maskPhoneNumber(captchaData.phone)}, result=${geetestResult.result ?? '未知'}`,
+        );
+        throw new BadRequestException('滑块验证失败，请重试');
+      }
     } catch (error) {
       if (
         error instanceof BadRequestException ||

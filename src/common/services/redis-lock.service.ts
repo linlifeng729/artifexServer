@@ -49,10 +49,7 @@ export class RedisLockService implements OnModuleInit, OnModuleDestroy {
     db: number;
     keyPrefix: string;
   } {
-    const requiredConfigs = [
-      'REDIS_HOST',
-      'REDIS_PORT',
-    ];
+    const requiredConfigs = ['REDIS_HOST', 'REDIS_PORT'];
 
     const missingConfigs = requiredConfigs.filter(
       (key) => !this.configService.get<string>(key),
@@ -75,7 +72,9 @@ export class RedisLockService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit(): Promise<void> {
     await this.initRedisClient();
-    this.logger.log(`Redis 分布式锁服务初始化完成，keyPrefix: ${this.config.keyPrefix}`);
+    this.logger.log(
+      `Redis 分布式锁服务初始化完成，keyPrefix: ${this.config.keyPrefix}`,
+    );
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -247,7 +246,10 @@ export class RedisLockService implements OnModuleInit, OnModuleDestroy {
    * @param lockKey 锁的 key
    * @param ttlMs 延长的过期时间（毫秒）
    */
-  async extendLock(lockKey: string, ttlMs: number = this.defaultTtlMs): Promise<boolean> {
+  async extendLock(
+    lockKey: string,
+    ttlMs: number = this.defaultTtlMs,
+  ): Promise<boolean> {
     const fullKey = this.buildKey(lockKey);
     const lock = this.activeLocks.get(fullKey);
 

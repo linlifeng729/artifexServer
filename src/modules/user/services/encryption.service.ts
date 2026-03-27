@@ -15,10 +15,7 @@ export class EncryptionService {
   private readonly iv: Buffer;
 
   constructor(private readonly configService: ConfigService) {
-    const requiredConfigs = [
-      'PHONE_ENCRYPTION_KEY',
-      'PHONE_ENCRYPTION_IV',
-    ];
+    const requiredConfigs = ['PHONE_ENCRYPTION_KEY', 'PHONE_ENCRYPTION_IV'];
 
     const missingConfigs = requiredConfigs.filter(
       (key) => !this.configService.get<string>(key),

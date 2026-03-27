@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ADMIN_ONLY_KEY, IS_PUBLIC_KEY } from '@/modules/auth/decorators';
-import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
+import { AUTH_CONSTANTS } from '@/modules/auth/constants/index';
 
 /**
  * 管理员权限守卫

@@ -7,7 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { IS_PUBLIC_KEY } from '@/modules/auth/decorators';
-import { AUTH_CONSTANTS } from '@/modules/auth/constants/auth.constants';
+import { AUTH_CONSTANTS } from '@/modules/auth/constants/index';
 
 /**
  * JWT 认证守卫

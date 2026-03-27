@@ -46,16 +46,25 @@ export class User {
 
   @Column({
     nullable: true,
-    length: 10,
-    comment: '验证码',
+    length: 60,
+    comment: '验证码哈希（bcrypt）',
   })
-  verificationCode?: string;
+  verificationCodeHash?: string;
 
   @Column({ type: 'timestamp', nullable: true, comment: '验证码过期时间' })
   verificationCodeExpiredAt?: Date;
 
   @Column({ type: 'timestamp', nullable: true, comment: '上次发送验证码时间' })
   lastCodeSentAt?: Date;
+
+  @Column({
+    nullable: true,
+    type: 'tinyint',
+    width: 3,
+    default: 0,
+    comment: '验证码错误重试次数',
+  })
+  verificationCodeAttempts?: number;
 
   @Column({
     type: 'enum',

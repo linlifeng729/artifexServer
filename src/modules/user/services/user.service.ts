@@ -45,7 +45,7 @@ export class UserService {
       }
 
       // 解密手机号并返回（排除敏感字段）
-      const userData = this._getUserWithDecryptedPhone(user);
+      const userData = this.getUserWithDecryptedPhone(user);
 
       return ResponseHelper.success(userData, '用户查询成功');
     } catch (error) {
@@ -61,21 +61,18 @@ export class UserService {
   /**
    * 辅助方法：返回包含解密手机号的用户信息（排除敏感字段）
    */
-  private _getUserWithDecryptedPhone(user: User): PublicUser {
+  private getUserWithDecryptedPhone(user: User): PublicUser {
     try {
       const decryptedPhone = this.encryptionService.decryptPhone(user.phone);
-      const {
-        userId,
-        phoneHash,
-        verificationCode,
-        verificationCodeExpiredAt,
-        lastCodeSentAt,
-        ...result
-      } = user;
       return {
-        ...result,
+        id: user.id,
         phone: decryptedPhone,
-      };
+        nickname: user.nickname,
+        role: user.role,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      } as PublicUser;
     } catch (error) {
       throw new InternalServerErrorException('用户数据解密失败', {
         cause: error,
@@ -201,7 +198,7 @@ export class UserService {
 
       // 解密所有用户的手机号并排除敏感字段
       const decryptedUsers = users.map((user) =>
-        this._getUserWithDecryptedPhone(user),
+        this.getUserWithDecryptedPhone(user),
       );
 
       return ResponseHelper.paginated(

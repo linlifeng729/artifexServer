@@ -258,7 +258,7 @@ return ResponseHelper.error('错误信息', { code: 'ERROR_CODE' })
 ```
 auth/
 ├── constants/              # 认证常量
-│   ├── auth.constants.ts   # JWT 配置常量
+│   ├── index.ts   # JWT 配置常量
 │   └── index.ts
 ├── decorators/             # 自定义装饰器
 │   └── index.ts
