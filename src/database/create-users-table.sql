@@ -11,6 +11,7 @@ CREATE TABLE `users` (
   `verificationCode` varchar(10) DEFAULT NULL COMMENT '验证码',
   `verificationCodeExpiredAt` timestamp NULL DEFAULT NULL COMMENT '验证码过期时间',
   `lastCodeSentAt` timestamp NULL DEFAULT NULL COMMENT '上次发送验证码时间',
+  `verificationCodeAttempts` tinyint(3) DEFAULT 0 COMMENT '验证码错误重试次数',
   `role` enum('user','admin') NOT NULL DEFAULT 'user' COMMENT '用户、管理员',
   `isActive` tinyint(1) NOT NULL DEFAULT 1 COMMENT '1、激活，0、禁用',
   `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

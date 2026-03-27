@@ -118,8 +118,11 @@ export class AuthService {
           }
 
           // 生成验证码和过期时间
-          const verificationCode = ICrypto.generateRandomIntByLength(AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH);
-          const expirationMs = AUTH_CONSTANTS.VERIFICATION_CODE.EXPIRATION_MINUTES * 60 * 1000;
+          const verificationCode = ICrypto.generateRandomIntByLength(
+            AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH,
+          );
+          const expirationMs =
+            AUTH_CONSTANTS.VERIFICATION_CODE.EXPIRATION_MINUTES * 60 * 1000;
           const expiredAt = new Date(Date.now() + expirationMs);
           const now = new Date();
 
@@ -135,7 +138,7 @@ export class AuthService {
               verificationCodeHash: codeHash,
               verificationCodeExpiredAt: expiredAt,
               lastCodeSentAt: now,
-              verificationCodeAttempts: 0,
+              verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
             });
           } else {
             // 创建新用户记录（用于验证码登录）
@@ -151,7 +154,7 @@ export class AuthService {
               verificationCodeHash: codeHash,
               verificationCodeExpiredAt: expiredAt,
               lastCodeSentAt: now,
-              verificationCodeAttempts: 0,
+              verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
             });
             await this.userRepository.save(user);
           }
@@ -198,6 +201,12 @@ export class AuthService {
   /**
    * 验证验证码
    * 验证码以 bcrypt 哈希存储，验证时使用 bcrypt.compare 进行时序安全比对
+   *
+   * 安全策略：
+   * - 悲观锁防止并发重复使用
+   * - 连续错误超过 MAX_ATTEMPTS 次后强制清除验证码（防止暴力枚举）
+   * - 验证失败不立即清除验证码，仅累加错误次数（防止验证码置零攻击）
+   * - 验证成功或超限才清除验证码
    */
   async verifyCode(
     phone: string,
@@ -221,15 +230,29 @@ export class AuthService {
           return ResponseHelper.error('请先获取验证码', null);
         }
 
+        // 检查是否已达到最大错误次数
+        const maxAttempts = AUTH_CONSTANTS.VERIFICATION_CODE.MAX_ATTEMPTS;
+        const currentAttempts = user.verificationCodeAttempts || 0;
+        if (currentAttempts >= maxAttempts) {
+          // 清除已被锁定的验证码，要求用户重新获取
+          await manager.update(User, user.userId, {
+            verificationCodeHash: undefined,
+            verificationCodeExpiredAt: undefined,
+            verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
+          });
+          return ResponseHelper.error('验证码尝试次数过多，请重新获取', null);
+        }
+
         // 检查验证码是否过期
         if (
           !user.verificationCodeExpiredAt ||
           user.verificationCodeExpiredAt < new Date()
         ) {
-          // 清除过期的验证码哈希
+          // 清除过期的验证码
           await manager.update(User, user.userId, {
             verificationCodeHash: undefined,
             verificationCodeExpiredAt: undefined,
+            verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
           });
           return ResponseHelper.error('验证码已过期，请重新获取', null);
         }
@@ -238,18 +261,31 @@ export class AuthService {
         const isValid = await bcrypt.compare(code, user.verificationCodeHash);
 
         if (!isValid) {
-          // 验证码错误，清除哈希（防止暴力枚举）
+          // 仅累加错误次数，不清除验证码
+          // 这样攻击者无法通过"验证码置零攻击"使真实验证码失效
           await manager.update(User, user.userId, {
-            verificationCodeHash: undefined,
-            verificationCodeExpiredAt: undefined,
+            verificationCodeAttempts: currentAttempts + 1,
           });
+
+          // 计算剩余尝试次数
+          const remainingAttempts = maxAttempts - currentAttempts - 1;
+
+          // 接近锁定阈值时给出明确提示，但不暴露具体错误原因
+          if (remainingAttempts > 0 && remainingAttempts <= 2) {
+            return ResponseHelper.error(
+              `验证码错误，剩余 ${remainingAttempts} 次尝试机会`,
+              null,
+            );
+          }
+
           return ResponseHelper.error('验证码错误', null);
         }
 
-        // 验证成功，清除验证码哈希（同一事务中，确保一次性）
+        // 验证成功，清除验证码哈希并重置错误计数（同一事务，确保原子性）
         await manager.update(User, user.userId, {
           verificationCodeHash: undefined,
           verificationCodeExpiredAt: undefined,
+          verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
         });
 
         const userPublicFields: VerifyCodeSuccessData = {
@@ -341,7 +377,7 @@ export class AuthService {
         },
       );
 
-      // 检查极验业务结果，不能仅凭 HTTP 200 放行
+      // 检查极验业务结果
       const geetestResult = response.data as GeetestValidateResponse;
       if (geetestResult.result !== 'success') {
         this.loggingService.warn(

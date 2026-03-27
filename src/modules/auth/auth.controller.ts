@@ -1,14 +1,17 @@
-import { Controller, Post, Body, HttpCode } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, UseGuards } from '@nestjs/common';
 import { AuthService } from '@/modules/auth/services/auth.service';
 import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { SendVerificationCodeDto } from '@/modules/auth/dto/send-verificationcode.dto';
 import { Public } from '@/modules/auth/decorators';
+import { AuthRateLimitGuard } from '@/modules/auth/guards/auth-rate-limit.guard';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiResponse } from '@/common/interceptors/response.interceptor';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse as SwaggerApiResponse,
 } from '@nestjs/swagger';
+import { VerifyCodeSuccessData } from '@/modules/auth/types';
 
 /**
  * 认证控制器
@@ -16,6 +19,7 @@ import {
  */
 @ApiTags('认证模块')
 @Controller('api/auth')
+@SkipThrottle() // 跳过全局宽松限流，由 AuthRateLimitGuard 提供精细化限流
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -25,13 +29,15 @@ export class AuthController {
    * @param loginDto 登录数据传输对象，包含手机号和验证码
    */
   @Public()
+  @UseGuards(AuthRateLimitGuard)
   @ApiOperation({ summary: '用户登录' })
   @SwaggerApiResponse({ status: 200, description: '登录成功' })
+  @SwaggerApiResponse({ status: 429, description: '请求过于频繁' })
   @Post('login')
   @HttpCode(200)
   async userLogin(
     @Body() loginDto: LoginDto,
-  ): Promise<ApiResponse<{ user: unknown; token: string }>> {
+  ): Promise<ApiResponse<{ user: VerifyCodeSuccessData; token: string }>> {
     return await this.authService.userLogin(loginDto);
   }
 
@@ -41,8 +47,10 @@ export class AuthController {
    * @param sendCodeDto 发送验证码数据传输对象，包含手机号和滑块验证码
    */
   @Public()
+  @UseGuards(AuthRateLimitGuard)
   @ApiOperation({ summary: '发送验证码' })
   @SwaggerApiResponse({ status: 200, description: '验证码发送成功' })
+  @SwaggerApiResponse({ status: 429, description: '请求过于频繁' })
   @Post('send/verificationcode')
   @HttpCode(200)
   async sendSmsCode(
