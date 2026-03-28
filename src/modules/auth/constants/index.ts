@@ -39,10 +39,13 @@ export const AUTH_CONSTANTS = {
     VALIDATE_PATH: '/validate',
   },
 
+  /** 登录限流：5分钟内最多尝试5次 */
   LOGIN_RATE_LIMIT: {
-    MAX_ATTEMPTS: 3,
-    WINDOW_MS: 60000,
+    MAX_ATTEMPTS: 5,
+    WINDOW_MS: 300000,
   },
+
+  /** 发送验证码限流：同一IP+手机号1分钟1次；同一IP最多3次/分钟 */
   SEND_CODE_RATE_LIMIT: {
     MAX_ATTEMPTS: 1,
     WINDOW_MS: 60000,
