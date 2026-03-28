@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   InternalServerErrorException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -94,8 +95,7 @@ export class AuthService {
     return await this.redisLockService.withLock(
       lockKey,
       async () => {
-        try {
-          // 校验滑块验证码
+        // 校验滑块验证码
           await this.validateGeetestCaptcha(sendCodeDto);
 
           // 查找或创建用户记录
@@ -172,15 +172,6 @@ export class AuthService {
           }
 
           return ResponseHelper.success(true, '验证码发送成功');
-        } catch (error) {
-          if (
-            error instanceof BadRequestException ||
-            error instanceof InternalServerErrorException
-          ) {
-            throw error;
-          }
-          throw new InternalServerErrorException('验证码发送失败，请稍后重试');
-        }
       },
       AUTH_CONSTANTS.SECURITY.SMS_LOCK_TTL_MS,
     );
@@ -213,103 +204,99 @@ export class AuthService {
     code: string,
   ): Promise<ApiResponse<VerifyCodeSuccessData | null>> {
     return await this.dataSource.transaction(async (manager) => {
-      try {
-        const userPhoneHash = this.encryptionService.hashPhone(phone);
+      const userPhoneHash = this.encryptionService.hashPhone(phone);
 
-        // 在事务中查找用户，加锁防止并发问题
-        const user = await manager.findOne(User, {
-          where: { phoneHash: userPhoneHash, isActive: true },
-          lock: { mode: 'pessimistic_write' },
-        });
+      // 在事务中查找用户，加锁防止并发问题
+      const user = await manager.findOne(User, {
+        where: { phoneHash: userPhoneHash, isActive: true },
+        lock: { mode: 'pessimistic_write' },
+      });
 
-        if (!user) {
-          return ResponseHelper.error('用户不存在', null);
-        }
+      if (!user) {
+        return ResponseHelper.error('用户不存在', null);
+      }
 
-        if (!user.verificationCodeHash) {
-          return ResponseHelper.error('请先获取验证码', null);
-        }
+      if (!user.verificationCodeHash) {
+        return ResponseHelper.error('请先获取验证码', null);
+      }
 
-        // 检查是否已达到最大错误次数
-        const maxAttempts = AUTH_CONSTANTS.VERIFICATION_CODE.MAX_ATTEMPTS;
-        const currentAttempts = user.verificationCodeAttempts || 0;
-        if (currentAttempts >= maxAttempts) {
-          // 清除已被锁定的验证码，要求用户重新获取
-          await manager.update(User, user.userId, {
-            verificationCodeHash: undefined,
-            verificationCodeExpiredAt: undefined,
-            verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
-          });
-          return ResponseHelper.error('验证码尝试次数过多，请重新获取', null);
-        }
-
-        // 检查验证码是否过期
-        if (
-          !user.verificationCodeExpiredAt ||
-          user.verificationCodeExpiredAt < new Date()
-        ) {
-          // 清除过期的验证码
-          await manager.update(User, user.userId, {
-            verificationCodeHash: undefined,
-            verificationCodeExpiredAt: undefined,
-            verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
-          });
-          return ResponseHelper.error('验证码已过期，请重新获取', null);
-        }
-
-        // bcrypt 时序安全比对验证码
-        const isValid = await bcrypt.compare(code, user.verificationCodeHash);
-
-        if (!isValid) {
-          // 使用 SQL 原子递增，防止并发竞态导致计数丢失
-          // 即使多个请求同时到达，DB 层也会正确累加到真实猜测次数
-          const updated = await manager
-            .createQueryBuilder()
-            .update(User)
-            .set({ verificationCodeAttempts: () => 'verificationCodeAttempts + 1' })
-            .where('userId = :userId', { userId: user.userId })
-            .andWhere('verificationCodeAttempts < :maxAttempts', { maxAttempts })
-            .execute();
-
-          // 若更新行数为0，说明已达到上限（已被另一事务更新）
-          if (updated.affected === 0) {
-            return ResponseHelper.error('验证码尝试次数过多，请重新获取', null);
-          }
-
-          // 从 updated 值反推剩余次数（updated.affected=1 表示本次 +1 后仍在限制内）
-          const remainingAttempts = maxAttempts - (user.verificationCodeAttempts || AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS) - 1;
-
-          // 接近锁定阈值时给出明确提示，但不暴露具体错误原因
-          if (remainingAttempts > 0 && remainingAttempts <= 2) {
-            return ResponseHelper.error(
-              `验证码错误，剩余 ${remainingAttempts} 次尝试机会`,
-              null,
-            );
-          }
-
-          return ResponseHelper.error('验证码错误', null);
-        }
-
-        // 验证成功，清除验证码哈希并重置错误计数（同一事务，确保原子性）
+      // 检查是否已达到最大错误次数
+      const maxAttempts = AUTH_CONSTANTS.VERIFICATION_CODE.MAX_ATTEMPTS;
+      const currentAttempts = user.verificationCodeAttempts || 0;
+      if (currentAttempts >= maxAttempts) {
+        // 清除已被锁定的验证码，要求用户重新获取
         await manager.update(User, user.userId, {
           verificationCodeHash: undefined,
           verificationCodeExpiredAt: undefined,
           verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
         });
-
-        const userPublicFields: VerifyCodeSuccessData = {
-          id: user.id,
-          nickname: user.nickname,
-          role: user.role,
-          isActive: user.isActive,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        };
-
-        return ResponseHelper.success(userPublicFields, '验证码验证成功');
-      } catch {
-        return ResponseHelper.error('验证失败，请稍后重试', null);
+        return ResponseHelper.error('验证码尝试次数过多，请重新获取', null);
       }
+
+      // 检查验证码是否过期
+      if (
+        !user.verificationCodeExpiredAt ||
+        user.verificationCodeExpiredAt < new Date()
+      ) {
+        // 清除过期的验证码
+        await manager.update(User, user.userId, {
+          verificationCodeHash: undefined,
+          verificationCodeExpiredAt: undefined,
+          verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
+        });
+        return ResponseHelper.error('验证码已过期，请重新获取', null);
+      }
+
+      // bcrypt 时序安全比对验证码
+      const isValid = await bcrypt.compare(code, user.verificationCodeHash);
+
+      if (!isValid) {
+        // 使用 SQL 原子递增，防止并发竞态导致计数丢失
+        // 即使多个请求同时到达，DB 层也会正确累加到真实猜测次数
+        const updated = await manager
+          .createQueryBuilder()
+          .update(User)
+          .set({ verificationCodeAttempts: () => 'verificationCodeAttempts + 1' })
+          .where('userId = :userId', { userId: user.userId })
+          .andWhere('verificationCodeAttempts < :maxAttempts', { maxAttempts })
+          .execute();
+
+        // 若更新行数为0，说明已达到上限（已被另一事务更新）
+        if (updated.affected === 0) {
+          return ResponseHelper.error('验证码尝试次数过多，请重新获取', null);
+        }
+
+        // 从 updated 值反推剩余次数（updated.affected=1 表示本次 +1 后仍在限制内）
+        const remainingAttempts = maxAttempts - (user.verificationCodeAttempts || AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS) - 1;
+
+        // 接近锁定阈值时给出明确提示，但不暴露具体错误原因
+        if (remainingAttempts > 0 && remainingAttempts <= 2) {
+          return ResponseHelper.error(
+            `验证码错误，剩余 ${remainingAttempts} 次尝试机会`,
+            null,
+          );
+        }
+
+        return ResponseHelper.error('验证码错误', null);
+      }
+
+      // 验证成功，清除验证码哈希并重置错误计数（同一事务，确保原子性）
+      await manager.update(User, user.userId, {
+        verificationCodeHash: undefined,
+        verificationCodeExpiredAt: undefined,
+        verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
+      });
+
+      const userPublicFields: VerifyCodeSuccessData = {
+        id: user.id,
+        nickname: user.nickname,
+        role: user.role,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+
+      return ResponseHelper.success(userPublicFields, '验证码验证成功');
     });
   }
 
@@ -319,24 +306,17 @@ export class AuthService {
    * @returns 用户信息
    */
   async validateToken(token: string) {
-    try {
-      const payload = (await this.jwtService.verifyAsync(
-        token,
-      )) as unknown as JwtPayload;
+    const payload = (await this.jwtService.verifyAsync(
+      token,
+    )) as unknown as JwtPayload;
 
-      const user = await this.userService.getUserByIdInternal(payload.sub);
+    const user = await this.userService.getUserByIdInternal(payload.sub);
 
-      if (!user) {
-        throw new InternalServerErrorException('用户不存在');
-      }
-
-      return user;
-    } catch (error) {
-      if (error instanceof InternalServerErrorException) {
-        throw error;
-      }
-      throw new BadRequestException('无效的访问令牌');
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
     }
+
+    return user;
   }
 
   /**
@@ -366,38 +346,28 @@ export class AuthService {
       ENCODINGS.HEX,
     );
 
-    try {
-      const response = await this.httpService.axiosRef.post(
-        `${geetestDomain}${AUTH_CONSTANTS.GEETEST.VALIDATE_PATH}`,
-        new URLSearchParams({
-          lot_number,
-          captcha_output,
-          pass_token,
-          gen_time,
-          captcha_id,
-          sign_token: signToken,
-        }).toString(),
-        {
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
+    const response = await this.httpService.axiosRef.post(
+      `${geetestDomain}${AUTH_CONSTANTS.GEETEST.VALIDATE_PATH}`,
+      new URLSearchParams({
+        lot_number,
+        captcha_output,
+        pass_token,
+        gen_time,
+        captcha_id,
+        sign_token: signToken,
+      }).toString(),
+      {
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-      );
+      },
+    );
 
-      // 检查极验业务结果
-      const geetestResult = response.data as GeetestValidateResponse;
-      if (geetestResult.result !== 'success') {
-        this.loggingService.warn('[极验验证] 滑块验证失败，请客户端重试');
-        throw new BadRequestException('滑块验证失败，请重试');
-      }
-    } catch (error) {
-      if (
-        error instanceof BadRequestException ||
-        error instanceof InternalServerErrorException
-      ) {
-        throw error;
-      }
+    // 检查极验业务结果
+    const geetestResult = response.data as GeetestValidateResponse;
+    if (geetestResult.result !== 'success') {
+      this.loggingService.warn('[极验验证] 滑块验证失败，请客户端重试');
       throw new BadRequestException('滑块验证失败，请重试');
     }
   }

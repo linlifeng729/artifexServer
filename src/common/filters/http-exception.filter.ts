@@ -4,10 +4,9 @@ import {
   ArgumentsHost,
   HttpException,
   HttpStatus,
-  Logger,
-  Inject,
 } from '@nestjs/common';
 import { Response } from 'express';
+import { LoggingService } from '../services/logging.service';
 
 /**
  * 全局异常过滤器
@@ -15,10 +14,7 @@ import { Response } from 'express';
  */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  constructor(
-    @Inject(Logger)
-    private readonly logger: Logger,
-  ) {}
+  constructor(private readonly loggingService: LoggingService) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -26,7 +22,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = '服务器内部错误';
+    let message = '服务内部错误';
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -41,18 +37,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
         message = (exceptionResponse as any).message || exception.message;
       }
     } else if (exception instanceof Error) {
-      // 处理普通错误（如Service层抛出的Error）
-      message = exception.message;
-      status = HttpStatus.BAD_REQUEST;
+      this.loggingService.error(
+        `${request.method} ${request.url} - 未捕获异常: [${exception.name}] ${exception.message}\n${exception.stack}`,
+      );
+      message = '服务内部错误';
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
     }
 
-    // 记录错误日志
-    this.logger.error(
+    this.loggingService.error(
       `${request.method} ${request.url} - ${status} - ${message}`,
-      exception instanceof Error ? exception.stack : exception,
     );
 
-    // 返回统一的错误响应格式
     response.status(status).json({
       success: false,
       message,
