@@ -86,6 +86,7 @@ export type VerifyCodeSuccessData = Omit<
   | 'verificationCodeAttempts'
   | 'userId'
   | 'phoneHash'
+  | 'phone'
 >;
 
 /**

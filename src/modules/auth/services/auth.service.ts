@@ -74,7 +74,7 @@ export class AuthService {
     // 生成 JWT token（payload 包含 role，减少后续鉴权查询）
     const payload: JwtPayload = {
       sub: user.id,
-      phone: user.phone,
+      phone: phone,
       role: user.role,
     };
     const token = await this.jwtService.signAsync(payload, { expiresIn });
@@ -299,7 +299,6 @@ export class AuthService {
 
         const userPublicFields: VerifyCodeSuccessData = {
           id: user.id,
-          phone: user.phone,
           nickname: user.nickname,
           role: user.role,
           isActive: user.isActive,
