@@ -10,7 +10,7 @@ services:
       - ./.env:/.env
     environment:
       - COMMAND=npm run start:pm2:runtime
-      - TZ=Asia/Shanghai
+      - TZ=+08:00
     command: bash /run.sh
     ports:
       - 127.0.0.1:12600:12600/tcp
