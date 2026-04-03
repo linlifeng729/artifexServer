@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserController } from '@/modules/user/user.controller';
 import { UserService } from '@/modules/user/services/user.service';
 import { User } from '@/modules/user/entities/user.entity';
-import { EncryptionService } from '@/modules/user/services/encryption.service';
 
 /**
  * 用户模块
@@ -15,7 +14,7 @@ import { EncryptionService } from '@/modules/user/services/encryption.service';
     TypeOrmModule.forFeature([User]),
   ],
   controllers: [UserController],
-  providers: [UserService, EncryptionService],
-  exports: [UserService, EncryptionService],
+  providers: [UserService],
+  exports: [UserService],
 })
 export class UserModule {}

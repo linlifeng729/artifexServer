@@ -3,6 +3,7 @@ import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggingService } from '@/common/services/logging.service';
 import { RedisLockService } from '@/common/services/redis-lock.service';
+import { EncryptionService } from '@/common/services/encryption.service';
 
 /**
  * 通用模块
@@ -14,7 +15,7 @@ import { RedisLockService } from '@/common/services/redis-lock.service';
 @Global()
 @Module({
   imports: [HttpModule, TypeOrmModule.forFeature([], 'default')],
-  providers: [LoggingService, RedisLockService],
-  exports: [LoggingService, RedisLockService, HttpModule],
+  providers: [LoggingService, RedisLockService, EncryptionService],
+  exports: [LoggingService, RedisLockService, EncryptionService, HttpModule],
 })
 export class CommonModule {}

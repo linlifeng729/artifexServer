@@ -7,7 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '@/modules/user/entities/user.entity';
 import { UpdateUserDto } from '@/modules/user/dto';
-import { EncryptionService } from '@/modules/user/services/encryption.service';
+import { EncryptionService } from '@/common/services/encryption.service';
 import { ApiResponse } from '@/common/interceptors/response.interceptor';
 import { ResponseHelper } from '@/common/utils/response.helper';
 import { USER_CONSTANTS } from '@/modules/user/constants';

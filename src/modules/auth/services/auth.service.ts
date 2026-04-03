@@ -16,7 +16,7 @@ import { LoginDto } from '@/modules/auth/dto/login.dto';
 import { SendVerificationCodeDto } from '@/modules/auth/dto/send-verificationcode.dto';
 import { UserService } from '@/modules/user/services/user.service';
 import { User } from '@/modules/user/entities/user.entity';
-import { EncryptionService } from '@/modules/user/services/encryption.service';
+import { EncryptionService } from '@/common/services/encryption.service';
 import { TencentSmsService } from './tencent-sms.service';
 import { ApiResponse } from '@/common/interceptors/response.interceptor';
 import { ResponseHelper } from '@/common/utils/response.helper';
