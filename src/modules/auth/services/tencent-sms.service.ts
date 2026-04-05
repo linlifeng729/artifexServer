@@ -82,13 +82,22 @@ export class TencentSmsService {
       };
 
       this.smsClient = new SmsClient(clientConfig);
-      this.loggingService.log('腾讯云短信客户端初始化成功');
     } catch (error) {
       this.loggingService.error(
-        `腾讯云短信客户端初始化失败: ${error instanceof Error ? error.message : String(error)}`,
+        '[腾讯云短信] 客户端初始化失败，请检查配置是否正确',
       );
       throw new Error('短信服务初始化失败');
     }
+  }
+
+  /**
+   * 根据腾讯云短信错误码获取友好的错误信息
+   */
+  private getSmsErrorInfo(code: string): { user: string; log: string } {
+    return AUTH_CONSTANTS.SMS_ERROR_CODES[code as keyof typeof AUTH_CONSTANTS.SMS_ERROR_CODES] ?? {
+      user: '短信发送失败，请稍后重试',
+      log: `未知错误码: ${code}`,
+    };
   }
 
   /**
@@ -120,10 +129,6 @@ export class TencentSmsService {
       const response: TencentSendSmsResponse =
         await this.smsClient.SendSms(params);
 
-      this.loggingService.log(
-        `[腾讯云短信] 发送完成 - RequestId: ${response.RequestId ?? '-'}, 状态: ${response.SendStatusSet?.[0]?.Code ?? '未知'}`,
-      );
-
       if (response.SendStatusSet && response.SendStatusSet.length > 0) {
         const sendStatus = response.SendStatusSet[0];
 
@@ -132,23 +137,23 @@ export class TencentSmsService {
             { requestId: response.RequestId },
             '短信发送成功',
           );
-        } else {
-          this.loggingService.error(
-            `[腾讯云短信发送失败] Code: ${sendStatus.Code ?? '-'}, Message: ${sendStatus.Message ?? '-'}, RequestId: ${response.RequestId ?? '-'}`,
-          );
-          return ResponseHelper.error(
-            `短信发送失败: ${sendStatus.Code ?? '未知错误'}`,
-            { requestId: response.RequestId },
-          );
         }
-      } else {
+
+        const errorInfo = this.getSmsErrorInfo(sendStatus.Code ?? '');
         this.loggingService.error(
-          `[腾讯云短信响应格式异常] RequestId: ${response.RequestId ?? '-'}`,
+          `[腾讯云短信发送失败] RequestId: ${response.RequestId}, 错误原因: ${errorInfo.log}, 错误码: ${sendStatus.Code}`,
         );
-        return ResponseHelper.error('短信发送响应格式异常', {
+        return ResponseHelper.error(errorInfo.user, {
           requestId: response.RequestId,
         });
       }
+
+      this.loggingService.error(
+        `[腾讯云短信响应格式异常] RequestId: ${response.RequestId ?? '-'}`,
+      );
+      return ResponseHelper.error('短信发送响应异常，请稍后重试', {
+        requestId: response.RequestId,
+      });
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       this.loggingService.error(`[腾讯云短信异常] ${errMsg}`);

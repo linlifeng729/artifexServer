@@ -9,8 +9,24 @@ async function bootstrap() {
     logger: ['log', 'error', 'warn'],
   });
 
-  // 安全中间件
+  // 安全中间件 - Helmet
   app.use(helmet());
+
+  // 开启 Express 信任代理，以便正确获取真实客户端 IP
+  // 在 Nginx/CDN 网关后面运行时必须开启，否则 X-Forwarded-For 会被忽略
+  // NestJS 需要通过 getHttpAdapter 访问底层 Express 实例
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.getInstance().set('trust proxy', 1);
+
+  // CORS 配置 - 防止跨站攻击
+  app.enableCors({
+    origin: process.env.CORS_ORIGINS?.split(',')?.map((o) => o.trim()),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['X-Request-Id'],
+    maxAge: 86400, // 预检请求缓存 24 小时
+  });
 
   // 配置全局验证管道
   app.useGlobalPipes(

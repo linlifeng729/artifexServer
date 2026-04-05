@@ -58,14 +58,12 @@ export class ICrypto {
     const mask = (1 << (bytesNeeded * 8)) - 1;
     let result: number;
     do {
-      result =
-        Number(
-          BigInt(
-            '0x' + crypto.randomBytes(bytesNeeded).toString('hex'),
-          ) & BigInt(mask),
-        );
+      result = Number(
+        BigInt('0x' + crypto.randomBytes(bytesNeeded).toString('hex')) &
+          BigInt(mask),
+      );
     } while (result >= range);
-    return (result).toString().padStart(length, '0');
+    return result.toString().padStart(length, '0');
   }
 
   /**

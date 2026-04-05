@@ -96,82 +96,78 @@ export class AuthService {
       lockKey,
       async () => {
         // 校验滑块验证码
-          await this.validateGeetestCaptcha(sendCodeDto);
+        await this.validateGeetestCaptcha(sendCodeDto);
 
-          // 查找或创建用户记录
-          const phoneHash = this.encryptionService.hashPhone(sendCodeDto.phone);
-          let user = await this.userRepository.findOne({
-            where: { phoneHash },
-            select: ['userId', 'phoneHash', 'lastCodeSentAt', 'isActive'],
+        // 查找或创建用户记录
+        const phoneHash = this.encryptionService.hashPhone(sendCodeDto.phone);
+        let user = await this.userRepository.findOne({
+          where: { phoneHash },
+          select: ['userId', 'phoneHash', 'lastCodeSentAt', 'isActive'],
+        });
+
+        // 检查发送频率限制
+        if (user?.lastCodeSentAt) {
+          const intervalMs =
+            AUTH_CONSTANTS.VERIFICATION_CODE.SEND_INTERVAL_SECONDS * 1000;
+          const timeDiff = Date.now() - user.lastCodeSentAt.getTime();
+          if (timeDiff < intervalMs) {
+            const remainingTime = Math.ceil((intervalMs - timeDiff) / 1000);
+            const message = `请等待${remainingTime}秒后再重新发送验证码`;
+            throw new BadRequestException(message);
+          }
+        }
+
+        // 生成验证码和过期时间
+        const verificationCode = ICrypto.generateRandomIntByLength(
+          AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH,
+        );
+        const expirationMs =
+          AUTH_CONSTANTS.VERIFICATION_CODE.EXPIRATION_MINUTES * 60 * 1000;
+        const expiredAt = new Date(Date.now() + expirationMs);
+        const now = new Date();
+
+        // bcrypt 哈希存储验证码
+        const codeHash = await bcrypt.hash(
+          verificationCode,
+          AUTH_CONSTANTS.SECURITY.BCRYPT_SALT_ROUNDS,
+        );
+
+        if (user) {
+          // 更新现有用户的验证码哈希
+          await this.userRepository.update(user.userId, {
+            verificationCodeHash: codeHash,
+            verificationCodeExpiredAt: expiredAt,
+            lastCodeSentAt: now,
+            verificationCodeAttempts:
+              AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
           });
-
-          // 检查发送频率限制
-          if (user?.lastCodeSentAt) {
-            const intervalMs =
-              AUTH_CONSTANTS.VERIFICATION_CODE.SEND_INTERVAL_SECONDS * 1000;
-            const timeDiff = Date.now() - user.lastCodeSentAt.getTime();
-            if (timeDiff < intervalMs) {
-              const remainingTime = Math.ceil((intervalMs - timeDiff) / 1000);
-              const message = `请等待${remainingTime}秒后再重新发送验证码`;
-              throw new BadRequestException(message);
-            }
-          }
-
-          // 生成验证码和过期时间
-          const verificationCode = ICrypto.generateRandomIntByLength(
-            AUTH_CONSTANTS.VERIFICATION_CODE.LENGTH,
-          );
-          const expirationMs =
-            AUTH_CONSTANTS.VERIFICATION_CODE.EXPIRATION_MINUTES * 60 * 1000;
-          const expiredAt = new Date(Date.now() + expirationMs);
-          const now = new Date();
-
-          // bcrypt 哈希存储验证码
-          const codeHash = await bcrypt.hash(
-            verificationCode,
-            AUTH_CONSTANTS.SECURITY.BCRYPT_SALT_ROUNDS,
-          );
-
-          if (user) {
-            // 更新现有用户的验证码哈希
-            await this.userRepository.update(user.userId, {
-              verificationCodeHash: codeHash,
-              verificationCodeExpiredAt: expiredAt,
-              lastCodeSentAt: now,
-              verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
-            });
-          } else {
-            // 创建新用户记录（用于验证码登录）
-            const encryptedPhone = this.encryptionService.encryptPhone(
-              sendCodeDto.phone,
-            );
-
-            user = this.userRepository.create({
-              id: ICrypto.generateUUID(),
-              phone: encryptedPhone,
-              nickname: this.maskPhoneNumber(sendCodeDto.phone),
-              phoneHash,
-              verificationCodeHash: codeHash,
-              verificationCodeExpiredAt: expiredAt,
-              lastCodeSentAt: now,
-              verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
-            });
-            await this.userRepository.save(user);
-          }
-
-          // 发送短信验证码
-          const smsResult = await this.tencentSmsService.sendSmsCode(
+        } else {
+          // 创建新用户记录（用于验证码登录）
+          const encryptedPhone = this.encryptionService.encryptPhone(
             sendCodeDto.phone,
-            verificationCode,
           );
 
-          if (!smsResult.success) {
-            throw new InternalServerErrorException(
-              '验证码发送失败，请稍后重试',
-            );
-          }
+          user = this.userRepository.create({
+            id: ICrypto.generateUUID(),
+            phone: encryptedPhone,
+            nickname: this.maskPhoneNumber(sendCodeDto.phone),
+            phoneHash,
+            verificationCodeHash: codeHash,
+            verificationCodeExpiredAt: expiredAt,
+            lastCodeSentAt: now,
+            verificationCodeAttempts:
+              AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
+          });
+          await this.userRepository.save(user);
+        }
 
-          return ResponseHelper.success(true, '验证码发送成功');
+        // 发送短信验证码
+        const smsResult = await this.tencentSmsService.sendSmsCode(
+          sendCodeDto.phone,
+          verificationCode,
+        );
+
+        return smsResult as unknown as ApiResponse<boolean>;
       },
       AUTH_CONSTANTS.SECURITY.SMS_LOCK_TTL_MS,
     );
@@ -228,7 +224,8 @@ export class AuthService {
         await manager.update(User, user.userId, {
           verificationCodeHash: undefined,
           verificationCodeExpiredAt: undefined,
-          verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
+          verificationCodeAttempts:
+            AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
         });
         return ResponseHelper.error('验证码尝试次数过多，请重新获取', null);
       }
@@ -242,7 +239,8 @@ export class AuthService {
         await manager.update(User, user.userId, {
           verificationCodeHash: undefined,
           verificationCodeExpiredAt: undefined,
-          verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
+          verificationCodeAttempts:
+            AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
         });
         return ResponseHelper.error('验证码已过期，请重新获取', null);
       }
@@ -256,7 +254,9 @@ export class AuthService {
         const updated = await manager
           .createQueryBuilder()
           .update(User)
-          .set({ verificationCodeAttempts: () => 'verificationCodeAttempts + 1' })
+          .set({
+            verificationCodeAttempts: () => 'verificationCodeAttempts + 1',
+          })
           .where('userId = :userId', { userId: user.userId })
           .andWhere('verificationCodeAttempts < :maxAttempts', { maxAttempts })
           .execute();
@@ -267,7 +267,11 @@ export class AuthService {
         }
 
         // 从 updated 值反推剩余次数（updated.affected=1 表示本次 +1 后仍在限制内）
-        const remainingAttempts = maxAttempts - (user.verificationCodeAttempts || AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS) - 1;
+        const remainingAttempts =
+          maxAttempts -
+          (user.verificationCodeAttempts ||
+            AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS) -
+          1;
 
         // 接近锁定阈值时给出明确提示，但不暴露具体错误原因
         if (remainingAttempts > 0 && remainingAttempts <= 2) {
@@ -284,7 +288,8 @@ export class AuthService {
       await manager.update(User, user.userId, {
         verificationCodeHash: undefined,
         verificationCodeExpiredAt: undefined,
-        verificationCodeAttempts: AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
+        verificationCodeAttempts:
+          AUTH_CONSTANTS.VERIFICATION_CODE.INITIAL_ATTEMPTS,
       });
 
       const userPublicFields: VerifyCodeSuccessData = {
@@ -320,7 +325,7 @@ export class AuthService {
   }
 
   /**
-   * 校验极验滑块验证码
+   * 校验极验滑块验证码（带超时和重试机制）
    * @param captchaData 滑块验证码数据
    */
   private async validateGeetestCaptcha(
@@ -346,29 +351,68 @@ export class AuthService {
       ENCODINGS.HEX,
     );
 
-    const response = await this.httpService.axiosRef.post(
-      `${geetestDomain}${AUTH_CONSTANTS.GEETEST.VALIDATE_PATH}`,
-      new URLSearchParams({
-        lot_number,
-        captcha_output,
-        pass_token,
-        gen_time,
-        captcha_id,
-        sign_token: signToken,
-      }).toString(),
-      {
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-      },
-    );
+    const requestBody = new URLSearchParams({
+      lot_number,
+      captcha_output,
+      pass_token,
+      gen_time,
+      captcha_id,
+      sign_token: signToken,
+    }).toString();
 
-    // 检查极验业务结果
-    const geetestResult = response.data as GeetestValidateResponse;
-    if (geetestResult.result !== 'success') {
-      this.loggingService.warn('[极验验证] 滑块验证失败，请客户端重试');
-      throw new BadRequestException('滑块验证失败，请重试');
+    // 重试配置
+    const maxRetries = AUTH_CONSTANTS.GEETEST.MAX_RETRIES || 3;
+    const timeoutMs = AUTH_CONSTANTS.GEETEST.TIMEOUT_MS || 5000;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await this.httpService.axiosRef.post(
+          `${geetestDomain}${AUTH_CONSTANTS.GEETEST.VALIDATE_PATH}`,
+          requestBody,
+          {
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            timeout: timeoutMs,
+          },
+        );
+
+        // 检查极验业务结果
+        const geetestResult = response.data as GeetestValidateResponse;
+        if (geetestResult.result !== 'success') {
+          this.loggingService.warn('[极验验证] 滑块验证失败，请客户端重试');
+          throw new BadRequestException('滑块验证失败，请重试');
+        }
+
+        // 验证成功，直接返回
+        return;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // 业务错误（如验证失败）不重试
+        if (error instanceof BadRequestException) {
+          throw error;
+        }
+
+        this.loggingService.warn(
+          `[极验验证] 第 ${attempt}/${maxRetries} 次尝试失败: ${lastError.message}`,
+        );
+
+        // 最后一次尝试失败，抛出异常
+        if (attempt === maxRetries) {
+          break;
+        }
+
+        // 指数退避：第 1 次等 500ms，第 2 次等 1000ms
+        await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+      }
     }
+
+    this.loggingService.error(`[极验验证] 服务不可用，已重试 ${maxRetries} 次`);
+    throw new InternalServerErrorException(
+      '滑块验证服务暂时不可用，请稍后重试',
+    );
   }
 }

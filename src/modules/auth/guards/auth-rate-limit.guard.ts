@@ -5,9 +5,11 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { AUTH_CONSTANTS } from '@/modules/auth/constants';
 import { RedisLockService } from '@/common/services/redis-lock.service';
+import { LoggingService } from '@/common/services/logging.service';
 
 /**
  * 精细化限流守卫
@@ -26,8 +28,41 @@ import { RedisLockService } from '@/common/services/redis-lock.service';
 @Injectable()
 export class AuthRateLimitGuard implements CanActivate {
   private readonly keyPrefix = 'ratelimit';
+  /** 可信代理 IP 列表（从环境变量读取，支持 CIDR 格式） */
+  private readonly trustedProxies: string[];
 
-  constructor(private readonly redisLockService: RedisLockService) {}
+  constructor(
+    private readonly redisLockService: RedisLockService,
+    private readonly configService: ConfigService,
+    private readonly loggingService: LoggingService,
+  ) {
+    this.trustedProxies = this.getTrustedProxiesConfig();
+  }
+
+  /**
+   * 获取可信代理配置
+   * 记录配置状态日志，便于排查 IP 获取问题
+   */
+  private getTrustedProxiesConfig(): string[] {
+    const proxies = this.configService.get<string>('TRUSTED_PROXIES') || '';
+
+    const proxyList = proxies
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    if (proxyList.length > 0) {
+      this.loggingService.log(
+        `[限流守卫] 已加载可信代理配置: ${proxyList.join(', ')}`,
+      );
+    } else {
+      this.loggingService.warn(
+        `[限流守卫] TRUSTED_PROXIES 未配置，将不信任任何代理（限流基于 socket IP）`,
+      );
+    }
+
+    return proxyList;
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -118,7 +153,10 @@ export class AuthRateLimitGuard implements CanActivate {
    * Redis INCR + 自动设置/刷新 TTL
    * 固定窗口计数：窗口内累加，窗口到期后计数器自动归零
    */
-  private async incrementAndGet(key: string, windowMs: number): Promise<number> {
+  private async incrementAndGet(
+    key: string,
+    windowMs: number,
+  ): Promise<number> {
     const redis = this.redisLockService.getRedisClient();
     const ttlSeconds = await redis.ttl(key);
 
@@ -142,15 +180,72 @@ export class AuthRateLimitGuard implements CanActivate {
     return ttlSeconds > 0 ? ttlSeconds * 1000 : 0;
   }
 
-  /** 从请求头提取真实 IP（支持 X-Forwarded-For 代理场景） */
+  /**
+   * 从请求头提取真实 IP（安全版本）
+   * 仅当请求来自可信代理时，才信任 X-Forwarded-For 头
+   * 防止攻击者伪造 X-Forwarded-For 绕过限流
+   */
   private getClientIp(request: Request): string {
-    const forwardedFor = request.headers['x-forwarded-for'];
-    if (typeof forwardedFor === 'string') {
-      return forwardedFor.split(',')[0].trim();
+    const socketIp = request.socket.remoteAddress || '';
+
+    // 检查请求是否来自可信代理
+    const isFromTrustedProxy = this.isTrustedProxy(socketIp);
+
+    if (isFromTrustedProxy) {
+      const forwardedFor = request.headers['x-forwarded-for'];
+      if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
+        // 取第一个非空 IP（最左边的客户端 IP）
+        return forwardedFor.split(',')[0].trim();
+      }
+      if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
+        return forwardedFor[0].split(',')[0].trim();
+      }
     }
-    if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
-      return forwardedFor[0].split(',')[0].trim();
+
+    // 不信任代理或无 X-Forwarded-For，使用 socket IP
+    return socketIp || request.ip || 'unknown';
+  }
+
+  /**
+   * 检查 IP 是否来自可信代理
+   * 支持 CIDR 格式（如 10.0.0.0/8）和精确匹配
+   */
+  private isTrustedProxy(ip: string): boolean {
+    if (this.trustedProxies.length === 0) {
+      return false;
     }
-    return request.ip || request.socket.remoteAddress || 'unknown';
+
+    // IPv6 映射的 IPv4 地址转换（::ffff:127.0.0.1 -> 127.0.0.1）
+    const normalizedIp = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+
+    return this.trustedProxies.some((proxy) => {
+      // 精确匹配
+      if (proxy === normalizedIp || proxy === ip) {
+        return true;
+      }
+
+      // 简单 CIDR 匹配（仅支持 /8, /16, /24）
+      if (proxy.includes('/')) {
+        const [network, prefix] = proxy.split('/');
+        const prefixNum = parseInt(prefix, 10);
+        if (prefixNum === 8) {
+          return normalizedIp.startsWith(
+            network.split('.').slice(0, 1).join('.'),
+          );
+        }
+        if (prefixNum === 16) {
+          return normalizedIp.startsWith(
+            network.split('.').slice(0, 2).join('.'),
+          );
+        }
+        if (prefixNum === 24) {
+          return normalizedIp.startsWith(
+            network.split('.').slice(0, 3).join('.'),
+          );
+        }
+      }
+
+      return false;
+    });
   }
 }

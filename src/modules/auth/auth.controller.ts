@@ -49,7 +49,7 @@ export class AuthController {
   @Public()
   @UseGuards(AuthRateLimitGuard)
   @ApiOperation({ summary: '发送验证码' })
-  @SwaggerApiResponse({ status: 200, description: '验证码发送成功' })
+  @SwaggerApiResponse({ status: 200, description: '短信发送成功' })
   @SwaggerApiResponse({ status: 429, description: '请求过于频繁' })
   @Post('send/verificationcode')
   @HttpCode(200)
